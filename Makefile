@@ -37,7 +37,7 @@ PYTHON ?= python
 #PYTHON ?= /Users/boris/opt/anaconda2/bin/python
 
 # your optimization flag
-OPTFLAG = -O4 -ffast-math #-march=native
+OPTFLAG = -O4 -ffast-math -arch x86_64 #-march=native
 #OPTFLAG = -Ofast -ffast-math #-march=native
 #OPTFLAG = -fast
 
