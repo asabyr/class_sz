@@ -41,7 +41,7 @@ classy_ext = Extension("classy_sz", [os.path.join(classy_folder, "classy.pyx")],
                            library_dirs=[root_folder, GCCPATH],
                            #extra_link_args=['-lgomp','-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/10/','-L/Users/boris/gsl-2.6/lib/','-lgsl','-lgslcblas'])
                            #extra_link_args=['-lgomp','-L/Users/boris/gsl-2.6/lib/','-lgsl','-lgslcblas','-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/10/'])
-                           extra_link_args=['-lgomp','-L/opt/homebrew/lib/','-lgsl','-lfftw3','-lgslcblas','-Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/11/']) # BB
+                           extra_link_args=['-lomp','-L/Users/asabyr/opt/anaconda3/envs/cib/lib/','-lgsl','-lfftw3','-lgslcblas'])#,'-Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/11/']) # BB
                            #extra_link_args=['-lgomp','-lgsl','-lfftw3_omp','-lfftw3','-lgslcblas','-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/11/']) # BB
                            # extra_link_args=['-lgomp','-L/home/runner/work/SOLikeT/SOLikeT/gsl-2.6/lib','-lgsl','-lgslcblas'])
 

@@ -19,7 +19,8 @@ vpath .base build
 ########################################################
 
 # your C compiler:
-CC       = gcc-11
+#CC       = gcc-11
+CC       = clang
 #CC       = gcc  -Wunused-variable
 #CC       = icc
 #CC       = pgcc
@@ -33,7 +34,7 @@ AR        = ar rv
 # add a compilation option on the terminal command line:
 # "PYTHON=python3 make all" (THanks to Marius Millea for pyhton3
 # compatibility)
-PYTHON ?= python
+PYTHON ?= /Users/asabyr/opt/anaconda3/envs/cib/bin/python
 #PYTHON ?= /Users/boris/opt/anaconda2/bin/python
 
 # your optimization flag
@@ -42,13 +43,15 @@ OPTFLAG = -O4 -ffast-math -arch x86_64 #-march=native
 #OPTFLAG = -fast
 
 # your openmp flag (comment for compiling without openmp)
-OMPFLAG   = -fopenmp
+# OMPFLAG   = -fopenmp
 #OMPFLAG   = -mp -mp=nonuma -mp=allcores -g
-#OMPFLAG   = -openmp
+OMPFLAG   = -Xclang -fopenmp
 
 # all other compilation flags
 CCFLAG = -g -fPIC
 LDFLAG = -g -fPIC
+
+LDFLAG += -lomp
 
 # leave blank to compile without HyRec, or put path to HyRec directory
 # (with no slash at the end: e.g. hyrec or ../hyrec)
@@ -69,8 +72,8 @@ CCFLAG += -D__CLASSDIR__='"$(MDIR)"'
 
 # where to find include files *.h
 #INCLUDES =  -I../include -I/usr/local/include/ -I/Users/boris/gsl-2.6/include/
-INCLUDES =  -I../include -I/usr/local/include/ -I/opt/homebrew/include/
-
+#INCLUDES =  -I../include -I/usr/local/include/ -I/opt/homebrew/include/
+INCLUDES =  -I../include -I/usr/local/include/ -I/Users/asabyr/opt/anaconda3/envs/cib/include/
 # automatically add external programs if needed. First, initialize to blank.
 EXTERNAL =
 
@@ -150,7 +153,9 @@ libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
 
 class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
 	#$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -g -o class $(addprefix build/,$(notdir $^)) -lm -L/home/runner/work/SOLikeT/SOLikeT/gsl-2.6/lib -lgsl -lgslcblas
-	 $(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -g -o class $(addprefix build/,$(notdir $^)) -L/usr/local/lib -L/opt/homebrew/lib -lgsl -lgslcblas -lfftw3 -lm
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -g -o class $(addprefix build/,$(notdir $^)) -L/usr/local/lib -L/Users/asabyr/opt/anaconda3/envs/cib/lib/ -lgsl -lgslcblas -lfftw3 -lm
+
+	 #$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -g -o class $(addprefix build/,$(notdir $^)) -L/usr/local/lib -L/opt/homebrew/lib -lgsl -lgslcblas -lfftw3 -lm
 	 # $(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -g -o class $(addprefix build/,$(notdir $^)) -L/usr/local/lib -lgsl -lgslcblas -lm
 
 test_loops: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_LOOPS)

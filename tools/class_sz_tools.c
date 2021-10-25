@@ -14044,7 +14044,7 @@ double get_L_sat_at_z_and_M_at_nu(double z_asked,
 
 
 int bispectrum_condition(double ell_1, double ell_2, double ell_3){
-int ell_1_min = abs(ell_2-ell_3);
+int ell_1_min = fabs(ell_2-ell_3);
 // TBC
 if (ell_1_min<2)
  ell_1_min  = 2;
