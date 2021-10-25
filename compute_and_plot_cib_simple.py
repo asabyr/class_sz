@@ -23,11 +23,11 @@ import itertools
 
 
 # set path to the class_sz code
-path_to_class = '/Users/boris/Work/CLASS-SZ/SO-SZ/class_sz/'
+path_to_class = '/Users/asabyr/Documents/SecondYearProject/class_sz/'
 # path_to_class = '/Users/boris/Downloads/class_sz-df37ebccd13a2e266cecd9bf553b729e93101e7e/'
 # set path to to the repository containing the folder 'cib_files' with your cib's in it
 # set path to where to save the figures
-FIG_DIR = '/Users/boris/Work/CLASS-SZ/SO-SZ/figures'
+FIG_DIR = '/Users/asabyr/Documents/SecondYearProject/'
 subprocess.call(['mkdir','-p',path_to_class+'sz_auxiliary_files/run_scripts'])
 
 # usefule function for formatting numbers
@@ -324,38 +324,38 @@ def run(args):
 
             col.append(next(colors))
 
-            if args.mode == 'run':
-                R = np.loadtxt(path_to_class+'sz_auxiliary_files/run_scripts/tmp/class-sz_tmp_szpowerspectrum.txt')
-            elif args.mode == 'plot':
-                R = np.loadtxt(path_to_class+'sz_auxiliary_files/run_scripts/tmp/class-sz_szpowerspectrum_' + str(p_val) + '.txt')
-
-            multipoles.append(R[:,0])
-            cl_1h.append(R[:,1])
-            cl_2h.append(R[:,6])
-            #print(cl_2h)
-            trispectrum.append(R[:,3])
-            te_y_y.append(R[:,7])
-            kSZ_kSZ_gal_1halo.append(R[:,8])
-            tSZ_lens_1h.append(R[:,9])
-            tSZ_lens_2h.append(R[:,10])
-            isw_lens.append(R[:,11])
-            isw_tsz.append(R[:,12])
-            isw_auto.append(R[:,13])
-            tSZ_gal_1h.append(R[:,20])
-            tSZ_tSZ_tSZ_1h.append(R[:,21])
-            gal_gal_1h.append(R[:,22])
-            gal_gal_2h.append(R[:,23])
-            gal_lens_1h.append(R[:,24])
-            gal_lens_2h.append(R[:,25])
-            tSZ_gal_2h.append(R[:,26])
-            lens_lens_1h.append(R[:,27])
-            lens_lens_2h.append(R[:,28])
-            tSZ_cib_1h.append(R[:,29])
-            tSZ_cib_2h.append(R[:,30])
-            cib_cib_1h.append(R[:,31])
-            cib_cib_2h.append(R[:,32])
-            lens_cib_1h.append(R[:,34])
-            lens_cib_2h.append(R[:,35])
+            # if args.mode == 'run':
+            #     R = np.loadtxt(path_to_class+'sz_auxiliary_files/run_scripts/tmp/class-sz_tmp_szpowerspectrum.txt')
+            # elif args.mode == 'plot':
+            #     R = np.loadtxt(path_to_class+'sz_auxiliary_files/run_scripts/tmp/class-sz_szpowerspectrum_' + str(p_val) + '.txt')
+            #
+            # multipoles.append(R[:,0])
+            # cl_1h.append(R[:,1])
+            # cl_2h.append(R[:,6])
+            # #print(cl_2h)
+            # trispectrum.append(R[:,3])
+            # te_y_y.append(R[:,7])
+            # kSZ_kSZ_gal_1halo.append(R[:,8])
+            # tSZ_lens_1h.append(R[:,9])
+            # tSZ_lens_2h.append(R[:,10])
+            # isw_lens.append(R[:,11])
+            # isw_tsz.append(R[:,12])
+            # isw_auto.append(R[:,13])
+            # tSZ_gal_1h.append(R[:,20])
+            # tSZ_tSZ_tSZ_1h.append(R[:,21])
+            # gal_gal_1h.append(R[:,22])
+            # gal_gal_2h.append(R[:,23])
+            # gal_lens_1h.append(R[:,24])
+            # gal_lens_2h.append(R[:,25])
+            # tSZ_gal_2h.append(R[:,26])
+            # lens_lens_1h.append(R[:,27])
+            # lens_lens_2h.append(R[:,28])
+            # tSZ_cib_1h.append(R[:,29])
+            # tSZ_cib_2h.append(R[:,30])
+            # cib_cib_1h.append(R[:,31])
+            # cib_cib_2h.append(R[:,32])
+            # lens_cib_1h.append(R[:,34])
+            # lens_cib_2h.append(R[:,35])
 
 
             if (args.plot_cib_cib == 'yes'):
@@ -403,9 +403,9 @@ def run(args):
             ax.legend(loc=4,ncol = 1)
             plt.draw()
             plt.pause(0.05)
-            if args.mode == 'run':
-                #save some results and remove the temporary files
-                subprocess.call(['mv',path_to_class+'sz_auxiliary_files/run_scripts/tmp/class-sz_tmp_szpowerspectrum.txt', path_to_class+'sz_auxiliary_files/run_scripts/tmp/' + 'class-sz_szpowerspectrum_' + str(p_val) + '.txt'])
+            # if args.mode == 'run':
+            #     #save some results and remove the temporary files
+            #     subprocess.call(['mv',path_to_class+'sz_auxiliary_files/run_scripts/tmp/class-sz_tmp_szpowerspectrum.txt', path_to_class+'sz_auxiliary_files/run_scripts/tmp/' + 'class-sz_szpowerspectrum_' + str(p_val) + '.txt'])
 
             id_p += 1
 
