@@ -305,6 +305,9 @@ cdef extern from "class.h":
         double **  cl_lens_cib_1h
         double **  cl_lens_cib_2h
         double * cib_frequency_list
+        double * frequencies_for_cib
+        double * cib_monopole
+        int n_frequencies_for_cib
         int cib_frequency_list_num
         double * pk_at_z_1h
         double * pk_at_z_2h
