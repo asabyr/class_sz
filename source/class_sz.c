@@ -642,7 +642,7 @@ int szpowerspectrum_free(struct tszspectrum *ptsz)
 
    free(ptsz->ell);
    free(ptsz->cl_sz_1h);
-   free(ptsz->frequencies_for_cib);
+   // free(ptsz->frequencies_for_cib);
    free(ptsz->cib_monopole);
    free(ptsz->cl_isw_lens);
    free(ptsz->cl_isw_tsz);
@@ -8741,30 +8741,32 @@ int select_multipole_array(struct tszspectrum * ptsz)
    ptsz->ell_trispectrum[8] = 10000.;
    ptsz->ell_trispectrum[9] = 20000.;
 
-   class_alloc(ptsz->frequencies_for_cib,
-                     10*sizeof(double),
-                     ptsz->error_message);
-    if (ptsz->dfreq == 0.){
-      ptsz->n_frequencies_for_cib = (int)((log(ptsz->freq_max) - log(ptsz->freq_min))/ptsz->dlogfreq) + 1;
-      class_realloc(ptsz->frequencies_for_cib,
-                    ptsz->frequencies_for_cib,
-                    ptsz->n_frequencies_for_cib*sizeof(double),
-                    ptsz->error_message);
-
-      int i;
-      for (i=0;i<ptsz->n_frequencies_for_cib;i++)
-       ptsz->frequencies_for_cib[i] = exp(log(ptsz->freq_min)+i*ptsz->dlogfreq);
-     }
-     else{
-       ptsz->n_frequencies_for_cib = (int)(ptsz->freq_max -ptsz->freq_min)/ptsz->dfreq + 1;
-       class_realloc(ptsz->frequencies_for_cib,
-                     ptsz->frequencies_for_cib,
-                     ptsz->n_frequencies_for_cib*sizeof(double),
-                     ptsz->error_message);
-     int i;
-     for (i=0;i<ptsz->n_frequencies_for_cib;i++)
-      ptsz->frequencies_for_cib[i] = ptsz->freq_min+i*ptsz->dfreq;
-     }
+   // class_alloc(ptsz->frequencies_for_cib,
+   //                   10*sizeof(double),
+   //                   ptsz->error_message);
+   //  if (ptsz->dfreq == 0.){
+   //    // ptsz->n_frequencies_for_cib = (int)((log(ptsz->freq_max) - log(ptsz->freq_min))/ptsz->dlogfreq) + 1;
+   //    ptsz->n_frequencies_for_cib = (int)((log(ptsz->freq_max) - log(ptsz->freq_min))/ptsz->dlogfreq);
+   //    class_realloc(ptsz->frequencies_for_cib,
+   //                  ptsz->frequencies_for_cib,
+   //                  ptsz->n_frequencies_for_cib*sizeof(double),
+   //                  ptsz->error_message);
+   //
+   //    int i;
+   //    for (i=0;i<ptsz->n_frequencies_for_cib;i++)
+   //     ptsz->frequencies_for_cib[i] = exp(log(ptsz->freq_min)+i*ptsz->dlogfreq);
+   //   }
+   //   else{
+   //     // ptsz->n_frequencies_for_cib = (int)(ptsz->freq_max -ptsz->freq_min)/ptsz->dfreq + 1;
+   //     ptsz->n_frequencies_for_cib = (int)(ptsz->freq_max -ptsz->freq_min)/ptsz->dfreq;
+   //     class_realloc(ptsz->frequencies_for_cib,
+   //                   ptsz->frequencies_for_cib,
+   //                   ptsz->n_frequencies_for_cib*sizeof(double),
+   //                   ptsz->error_message);
+   //   int i;
+   //   for (i=0;i<ptsz->n_frequencies_for_cib;i++)
+   //    ptsz->frequencies_for_cib[i] = ptsz->freq_min+i*ptsz->dfreq;
+   //   }
 
 
    class_alloc(ptsz->ell_mock,
