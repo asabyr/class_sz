@@ -1738,12 +1738,10 @@ int input_read_parameters(
       class_read_double("dlogell",ptsz->dlogell);
       class_read_double("dell",ptsz->dell);
 
-      // class_read_double("freq_max",ptsz->freq_max);
-      // class_read_double("freq_min",ptsz->freq_min);
-      // class_read_double("dlogfreq",ptsz->dlogfreq);
-      // class_read_double("dfreq",ptsz->dfreq);
-      class_read_int("n_freq",ptsz->n_frequencies_for_cib);
-      class_read_list_of_doubles("freq",ptsz->frequencies_for_cib,ptsz->n_frequencies_for_cib);
+      class_read_double("freq_max",ptsz->freq_max);
+      class_read_double("freq_min",ptsz->freq_min);
+      class_read_double("dlogfreq",ptsz->dlogfreq);
+      class_read_double("dfreq",ptsz->dfreq);
 
       class_read_double("k_min_for_pk_hm",ptsz->k_min_for_pk_hm);
       class_read_double("k_max_for_pk_hm",ptsz->k_max_for_pk_hm);
