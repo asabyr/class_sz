@@ -278,6 +278,10 @@ cdef extern from "class.h":
         double phi0SZ
         double eta0SZ
         double sigma8_Pcb
+        double * frequencies_for_cib
+        double * cib_monopole
+        double y_monopole
+        int n_frequencies_for_cib
         double * ell
         double * cl_sz_1h
         double * cl_sz_2h
@@ -287,9 +291,33 @@ cdef extern from "class.h":
         double * cl_kSZ_kSZ_gal_1h
         double * cl_kSZ_kSZ_gal_2h
         double * cl_kSZ_kSZ_gal_3h
+        double * cl_kSZ_kSZ_gal_1h_fft
+        double * cl_kSZ_kSZ_gal_2h_fft
+        double * cl_kSZ_kSZ_gal_3h_fft
         double * cl_kSZ_kSZ_gal_hf
+        double * cl_kSZ_kSZ_gal_lensing_term
+        double * cov_ll_kSZ_kSZ_gal
+        double * cl_kSZ_kSZ_gallens_1h_fft
+        double * cl_kSZ_kSZ_gallens_2h_fft
+        double * cl_kSZ_kSZ_gallens_3h_fft
+        double * cl_kSZ_kSZ_gallens_hf
+        double * cl_kSZ_kSZ_gallens_lensing_term
+        double * cov_ll_kSZ_kSZ_gallens
+        double * cl_kSZ_kSZ_lens_1h_fft
+        double * cl_kSZ_kSZ_lens_2h_fft
+        double * cl_kSZ_kSZ_lens_3h_fft
+        double * cl_kSZ_kSZ_lens_hf
+        double * cl_kSZ_kSZ_lens_lensing_term
+        double * cov_ll_kSZ_kSZ_lens
         double * cl_tSZ_lensmag_1h
         double * cl_tSZ_lensmag_2h
+        double * cl_gal_gallens_1h
+        double * cl_gal_gallens_2h
+        double * thetas_arcmin
+        double * gamma_gal_gallens_1h
+        double * gamma_gal_gallens_2h
+        double * cl_kSZ_kSZ_1h
+        double * cl_kSZ_kSZ_2h
         double * cl_gal_gal_1h
         double * cl_gal_gal_2h
         double * cl_gal_lens_1h
@@ -314,9 +342,14 @@ cdef extern from "class.h":
         double * bk_at_z_1h
         double * bk_at_z_2h
         double * bk_at_z_3h
+        double * bk_ttg_at_z_1h
+        double * bk_ttg_at_z_2h
+        double * bk_ttg_at_z_3h
         double * k_for_pk_hm
         double * pk_gg_at_z_1h
         double * pk_gg_at_z_2h
+        double * pk_bb_at_z_1h
+        double * pk_bb_at_z_2h
         double * cl_gal_lensmag_1h
         double * cl_gal_lensmag_2h
         double * cl_lens_lensmag_1h
@@ -433,7 +466,7 @@ cdef extern from "class.h":
     int transfer_init(void*,void*,void*,void*,void*,void*)
     int spectra_init(void*,void*,void*,void*,void*,void*,void*)
     int lensing_init(void*,void*,void*,void*,void*)
-    int szpowerspectrum_init(void*,void*,void*,void*,void*,void*)
+    int szpowerspectrum_init(void*,void*,void*,void*,void*,void*,void*,void*,void*)
     int szcount_init(void*,void*,void*,void*,void*)
 
     int background_tau_of_z(void* pba, double z,double* tau)
@@ -576,8 +609,22 @@ cdef extern from "class.h":
     double get_gas_profile_at_x_M_z_nfw_200m(double x_asked,
                                              double m_asked,
                                              double z_asked,
-                                            void * pba,
-                                            void * ptsz)
+                                             void * pba,
+                                             void * ptsz)
+
+    double get_gas_profile_at_x_M_z_nfw_200c(double x_asked,
+                                             double m_asked,
+                                             double z_asked,
+                                             void * pba,
+                                             void * ptsz)
+
+    double evaluate_truncated_nfw_profile(double z,
+                                          double k,
+                                          double r_delta,
+                                          double c_delta,
+                                          double xout)
+
+    double get_mean_galaxy_bias_at_z(double z, void * ptsz)
 
     double get_f_tinker10_at_nu_and_z(double nu, double z, int hm_consistency, void * ptsz)
     double get_T10_alpha_at_z(double z,void * ptsz);
@@ -595,6 +642,7 @@ cdef extern from "class.h":
                                              double alpha_z_alpha,
                                              double alpha_z_beta,
                                              double gamma,
+                                             double xc,
                                              void * pba,
                                              void * ptsz)
 
@@ -611,6 +659,7 @@ cdef extern from "class.h":
                                          void * ptsz)
 
     double get_c200m_at_m_and_z_D08(double M, double z)
+    double get_c200c_at_m_and_z_D08(double M, double z)
 
     double m_nfw(double x)
 
@@ -630,10 +679,11 @@ cdef extern from "class.h":
     double get_dndlnM_at_z_and_M(double z_asked,
                                  double m_asked,
                                  void * tsz)
-
+    double gnu_tsz_of_nu_in_ghz(double nu_in_ghz,double Tcmb)
     double get_dcib0dz_at_z_and_nu(double z_asked,
                                    double nu_asked,
                                    void * tsz)
+    double get_galaxy_number_counts(double z,void * tsz)
 
     double get_dydz_at_z(double z_asked,
                          void * tsz)
@@ -654,7 +704,7 @@ cdef extern from "class.h":
                                          double m_asked,
                                          void * tsz)
 
-    double get_gas_density_profile_at_l_M_z(double l_asked,
+    double get_gas_density_profile_at_k_M_z(double l_asked,
                                         double m_asked,
                                         double z_asked,
                                         void * tsz)
@@ -676,6 +726,33 @@ cdef extern from "class.h":
                                                            double x,
                                                            void * pba,
                                                            void * ptsz)
+
+
+    double get_pressure_P_over_P_delta_at_x_M_z_b12_200c(double x_asked,
+                                                         double m_asked,
+                                                         double z_asked,
+                                                         double A_P0,
+                                                         double A_xc,
+                                                         double A_beta,
+                                                         double alpha_m_P0,
+                                                         double alpha_m_xc,
+                                                         double alpha_m_beta,
+                                                         double alpha_z_P0,
+                                                         double alpha_z_xc,
+                                                         double alpha_z_beta,
+                                                         double alpha,
+                                                         double gamma,
+                                                         void * pba,
+                                                         void * tsz)
+
+    double get_pressure_P_over_P_delta_at_x_gnfw_500c(double x_asked,
+                                                          double P0GNFW,
+                                                          double alphaGNFW,
+                                                          double betaGNFW,
+                                                          double gammaGNFW,
+                                                          double c500,
+                                                          void * pba,
+                                                          void * tsz)
 
     double get_second_order_bias_at_z_and_nu(double z_asked,
                                              double nu_asked,
@@ -718,11 +795,30 @@ cdef extern from "class.h":
                                                double M_halo,
                                                double M_min,
                                                double sigma_log10M,
+                                               double fcen,
                                                void * ptsz,
                                                void * pba)
 
 
     double get_matter_bispectrum_at_z_tree_level_PT(double k1_in_h_over_Mpc,
+                                                         double k2_in_h_over_Mpc,
+                                                         double k3_in_h_over_Mpc,
+                                                         double z,
+                                                         void * ptsz,
+                                                         void * pba,
+                                                         void * pnl,
+                                                         void * ppm)
+
+
+    double get_ttg_bispectrum_at_z_tree_level_PT(double k1_in_h_over_Mpc,
+                                                         double k2_in_h_over_Mpc,
+                                                         double k3_in_h_over_Mpc,
+                                                         double z,
+                                                         void * ptsz,
+                                                         void * pba,
+                                                         void * pnl,
+                                                         void * ppm)
+    double get_ttg_bispectrum_at_z_effective_approach(double k1_in_h_over_Mpc,
                                                          double k2_in_h_over_Mpc,
                                                          double k3_in_h_over_Mpc,
                                                          double z,

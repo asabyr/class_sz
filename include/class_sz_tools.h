@@ -161,9 +161,11 @@ double delta_to_delta_prime_nfw(
   int load_rho_nfw_profile(struct tszspectrum * ptsz);
   int load_T10_alpha_norm(struct tszspectrum * ptsz);
   int load_normalized_dndz(struct tszspectrum * ptsz);
+  int load_normalized_source_dndz(struct tszspectrum * ptsz);
   int load_normalized_fdndz(struct tszspectrum * ptsz);
   int load_normalized_cosmos_dndz(struct tszspectrum * ptsz);
   int load_unbinned_nl_yy(struct tszspectrum * ptsz);
+  int load_unbinned_nl_tt(struct tszspectrum * ptsz);
   int load_ksz_filter(struct tszspectrum * ptsz);
   double get_T10_alpha_at_z(double z_asked, struct tszspectrum * ptsz);
   double get_knl_at_z(double z_asked, struct tszspectrum * ptsz);
@@ -203,6 +205,11 @@ double delta_to_delta_prime_nfw(
   int tabulate_redshift_int_lensmag(struct tszspectrum * ptsz,
                                     struct background * pba);
 
+  int evaluate_redshift_int_gallens_sources(double * pvectsz,
+                                    struct tszspectrum * ptsz);
+
+  int tabulate_redshift_int_gallens_sources(struct tszspectrum * ptsz,
+                                    struct background * pba);
 int tabulate_L_sat_at_nu_and_nu_prime(struct background * pba,
                                       struct tszspectrum * ptsz);
 int tabulate_L_sat_at_z_m_nu(struct background * pba,
@@ -221,6 +228,12 @@ int tabulate_m200c_to_m500c(struct background * pba,
 int tabulate_m500c_to_m200c(struct background * pba,
                             struct tszspectrum * ptsz);
   int redshift_int_lensmag(
+                    struct tszspectrum * ptsz,
+                    struct background * pba,
+                    double * pvectsz,
+                    double * result
+                  );
+  int redshift_int_gallens_sources(
                     struct tszspectrum * ptsz,
                     struct background * pba,
                     double * pvectsz,
@@ -494,12 +507,18 @@ int tabulate_dndlnM(struct background * pba,
 
 int bispectrum_condition(double ell_1, double ell_2, double ell_3);
 
+int tabulate_mean_galaxy_bias(struct background * pba,
+                                        struct nonlinear * pnl,
+                                        struct primordial * ppm,
+                                        struct tszspectrum * ptsz);
+
+
 int tabulate_mean_galaxy_number_density(struct background * pba,
                                         struct nonlinear * pnl,
                                         struct primordial * ppm,
                                         struct tszspectrum * ptsz);
 
-double get_gas_density_profile_at_l_M_z(double l_asked,
+double get_gas_density_profile_at_k_M_z(double l_asked,
                                     double m_asked,
                                     double z_asked,
                                     struct tszspectrum * ptsz);
@@ -530,7 +549,8 @@ int tabulate_psi_b1g(struct background * pba,
                     struct primordial * ppm,
                     struct tszspectrum * ptsz);
 
-double get_psi_b1g_at_l_and_z(double l_asked, double z_asked, struct tszspectrum * ptsz);
+
+double get_psi_b1g_at_k_and_z(double l_asked, double z_asked, struct tszspectrum * ptsz);
 
 
 int tabulate_psi_b2g(struct background * pba,
@@ -538,14 +558,33 @@ int tabulate_psi_b2g(struct background * pba,
                     struct primordial * ppm,
                     struct tszspectrum * ptsz);
 
-double get_psi_b2g_at_l_and_z(double l_asked, double z_asked, struct tszspectrum * ptsz);
+double get_psi_b2g_at_k_and_z(double l_asked, double z_asked, struct tszspectrum * ptsz);
+
+
+int tabulate_psi_b1kg(struct background * pba,
+                    struct nonlinear * pnl,
+                    struct primordial * ppm,
+                    struct tszspectrum * ptsz);
+
+
+double get_psi_b1kg_at_k_and_z(double l_asked, double z_asked, struct tszspectrum * ptsz);
+
+
+int tabulate_psi_b2kg(struct background * pba,
+                    struct nonlinear * pnl,
+                    struct primordial * ppm,
+                    struct tszspectrum * ptsz);
+
+double get_psi_b2kg_at_k_and_z(double l_asked, double z_asked, struct tszspectrum * ptsz);
+
+
 
 int tabulate_psi_b2t(struct background * pba,
                     struct nonlinear * pnl,
                     struct primordial * ppm,
                     struct tszspectrum * ptsz);
 
-double get_psi_b2t_at_l_and_z(double l_asked, double z_asked, struct tszspectrum * ptsz);
+double get_psi_b2t_at_k_and_z(double l_asked, double z_asked, struct tszspectrum * ptsz);
 
 
 
@@ -554,7 +593,7 @@ int tabulate_psi_b1t(struct background * pba,
                     struct primordial * ppm,
                     struct tszspectrum * ptsz);
 
-double get_psi_b1t_at_l_and_z(double l_asked, double z_asked, struct tszspectrum * ptsz);
+double get_psi_b1t_at_k_and_z(double l_asked, double z_asked, struct tszspectrum * ptsz);
 
 
 int tabulate_psi_b1gt(struct background * pba,
@@ -562,8 +601,15 @@ int tabulate_psi_b1gt(struct background * pba,
                     struct primordial * ppm,
                     struct tszspectrum * ptsz);
 
-double get_psi_b1gt_at_l1_l2_and_z(double l1_asked, double l2_asked, double z_asked, struct tszspectrum * ptsz);
+double get_psi_b1gt_at_k1_k2_and_z(double l1_asked, double l2_asked, double z_asked, struct tszspectrum * ptsz);
 
+
+int tabulate_psi_b1kgt(struct background * pba,
+                    struct nonlinear * pnl,
+                    struct primordial * ppm,
+                    struct tszspectrum * ptsz);
+
+double get_psi_b1kgt_at_k1_k2_and_z(double l1_asked, double l2_asked, double z_asked, struct tszspectrum * ptsz);
 
 
 

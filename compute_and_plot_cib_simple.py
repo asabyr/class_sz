@@ -7,18 +7,36 @@
 
 # Note the last option "-mode run" if you want to run class_sz, and "-mode plot" if you just want to plot
 # what was last computed.
-
+import matplotlib.pyplot as plt
 import argparse
 import numpy as np
 import os
 import subprocess
-import matplotlib.pyplot as plt
+
 from matplotlib.pyplot import cm
 from scipy import interpolate
 from scipy import stats
 from datetime import datetime
 import ast
 import itertools
+
+import pyccl as ccl
+
+do_ccl_comparison = 'yes'
+# path_to_ccl = '/Users/boris/Work/CCL/'
+freq_cib_1 = 3000.
+freq_cib_2 = 3000.
+# table 1 of https://arxiv.org/pdf/1309.0382.pdf
+#1: freq GHz 2: Flux cut mJy
+# 100 - 400
+# 143 - 350
+# 217 - 225
+# 353 - 315
+# 545 - 350
+# 857 - 710
+# 3000  - 1000
+cib_Snu_1 = 1000.
+cib_Snu_2 = 1000.
 
 
 
@@ -161,10 +179,13 @@ def run(args):
     # 'M500' is Tinker et al 2008 @ M500
     # 'T10' is Tinker et al 2010 @ m200_mean
 
-    p_dict['mass function'] = 'M500'
-    p_dict['concentration parameter'] = 'B13'
-    p_dict['hm_consistency'] = 0
+    p_dict['mass function'] = 'T10'
+    p_dict['concentration parameter'] = 'D08'
+    p_dict['delta for cib'] = '200m'
+    p_dict['hm_consistency'] = 1
     p_dict['damping_1h_term'] = 0
+
+
 
 
     # parameters for Cosmology
@@ -191,6 +212,9 @@ def run(args):
     p_dict['z_min'] = 0.07
     p_dict['z_max'] = 6. # fiducial for MM20 : 6
 
+    p_dict['freq_min'] = 10.
+    p_dict['freq_max'] = 5e4 # fiducial for MM20 : 6
+
     # HOD parameters for CIB
     p_dict['M_min_HOD'] = pow(10.,10)
     p_dict['M1_prime_HOD'] =pow(10.,12.51536196)*p_dict['h']
@@ -208,15 +232,26 @@ def run(args):
     p_dict['Most efficient halo mass in Msun'] = pow(10.,12.6)
     p_dict['Normalisation of L − M relation in [Jy MPc2/Msun/Hz]'] = 6.4e-8
     p_dict['Size of of halo masses sourcing CIB emission'] = 0.5
+    p_dict['has_cib_flux_cut'] = 1
 
     # List of frequency bands for cib
-    p_dict['cib_frequency_list_num'] = 1
-    p_dict['cib_frequency_list_in_GHz'] = '217'
-    # p_dict['cib_frequency_list_num'] = 5
-    # p_dict['cib_frequency_list_in_GHz'] = '217,353,545,857,3000'
-    p_dict["Frequency_id nu for cib in GHz (to save in file)"] = 0
-    p_dict["Frequency_id nu^prime for cib in GHz (to save in file)"] = 0
+    if freq_cib_1 == freq_cib_2:
+        p_dict['cib_frequency_list_num'] = 1
+        p_dict['cib_frequency_list_in_GHz'] = str(freq_cib_1)
+        p_dict['cib_Snu_cutoff_list [mJy]'] = str(cib_Snu_1)
+        # p_dict['cib_frequency_list_num'] = 5
+        # p_dict['cib_frequency_list_in_GHz'] = '217,353,545,857,3000'
+        p_dict["Frequency_id nu for cib in GHz (to save in file)"] = 0
+        p_dict["Frequency_id nu^prime for cib in GHz (to save in file)"] = 0
 
+    else:
+        p_dict['cib_frequency_list_num'] = 2
+        p_dict['cib_frequency_list_in_GHz'] = str(freq_cib_1)+','+str(freq_cib_2)
+        p_dict['cib_Snu_cutoff_list [mJy]'] = str(cib_Snu_1)+','+str(cib_Snu_2)
+        # p_dict['cib_frequency_list_num'] = 5
+        # p_dict['cib_frequency_list_in_GHz'] = '217,353,545,857,3000'
+        p_dict["Frequency_id nu for cib in GHz (to save in file)"] = 0
+        p_dict["Frequency_id nu^prime for cib in GHz (to save in file)"] = 1
     # verbose paramete of class_sz
     p_dict['sz_verbose'] = 2
     p_dict['root'] = 'sz_auxiliary_files/run_scripts/tmp/class-sz_tmp_'
@@ -232,7 +267,7 @@ def run(args):
     p_dict['mass_epsrel'] = 1e-4#1e-10
     # precision for Luminosity integral (sub-halo mass function)
     p_dict['L_sat_epsabs'] = 1e-40 #1.e-40
-    p_dict['L_sat_epsrel'] = 1e-2#1e-10
+    p_dict['L_sat_epsrel'] = 1e-3#1e-10
 
 
     p_dict['z_max_pk'] = p_dict['z_max']
@@ -249,11 +284,59 @@ def run(args):
     # p_dict['path_to_class'] = path_to_class
 
 
-    L_ref = np.loadtxt(path_to_class + 'sz_auxiliary_files/cib_files/cib_1h_217x217.txt')
+    L_ref = np.loadtxt(path_to_class + 'sz_auxiliary_files/cib_files/cib_1h_'+str(int(freq_cib_1))+'x'+str(int(freq_cib_2))+'.txt')
     ell_MM20 = L_ref[:,0]
     cl_cib_cib_1h_MM20 = L_ref[:,1]
-    L_ref = np.loadtxt(path_to_class + 'sz_auxiliary_files/cib_files/cib_2h_217x217.txt')
+    L_ref = np.loadtxt(path_to_class + 'sz_auxiliary_files/cib_files/cib_2h_'+str(int(freq_cib_1))+'x'+str(int(freq_cib_2))+'.txt')
     cl_cib_cib_2h_MM20 = L_ref[:,1]
+
+
+    if do_ccl_comparison == 'yes':
+        # Initialize cosmology and halo model ingredients
+        # bm = np.loadtxt(path_to_ccl + "/benchmarks/data/cib_class_sz_szpowerspectrum.txt",
+        #          unpack=True)
+        cosmo = ccl.Cosmology(Omega_b=p_dict['omega_b']/p_dict['h']**2.,
+                           Omega_c=p_dict['Omega_cdm'],
+                           h=p_dict['h'],
+                           n_s=p_dict['n_s'],
+                           A_s=p_dict['A_s'],
+                           Neff=3.046)
+        mdef = ccl.halos.MassDef200m()
+        cM = ccl.halos.ConcentrationDuffy08(mdef)
+        nM = ccl.halos.MassFuncTinker10(cosmo, mdef, norm_all_z=True)
+        bM = ccl.halos.HaloBiasTinker10(cosmo, mdef)
+        hmc = ccl.halos.HMCalculator(cosmo, nM, bM, mdef)
+        if freq_cib_1 == freq_cib_2:
+            pr = ccl.halos.HaloProfileCIBShang12(cM, freq_cib_1, Mmin=1E10)
+            pr.update_parameters(nu_GHz=freq_cib_1,
+                              alpha=0.36,
+                              T0=24.4,
+                              beta=1.75,
+                              gamma=1.7,
+                              s_z=3.6,
+                              log10meff=12.6,
+                              sigLM=np.sqrt(0.5),
+                              Mmin=1E10,
+                              L0=6.4E-8)
+
+            pr2pt = ccl.halos.Profile2ptCIB()
+
+            # CIB tracer
+            tr = ccl.CIBTracer(cosmo, z_min=p_dict['z_min'])
+
+            # 3D power spectrum
+            pk = ccl.halos.halomod_Pk2D(cosmo, hmc, pr, prof_2pt=pr2pt)
+
+        # Angular power spectrum
+        # ls = bm[0]
+        ls = np.geomspace(p_dict['ell_min'],p_dict['ell_max'],100)
+
+        cl = ccl.angular_cl(cosmo, tr, tr, ls, p_of_k_a=pk)
+
+
+        dl = cl*ls*(ls+1)/(2*np.pi)
+        l_ccl = ls
+        dl_ccl = dl
 
 
 
@@ -296,6 +379,8 @@ def run(args):
         ax.set_ylim(bottom=float(args.y_min))
     if(args.y_max):
         ax.set_ylim(top=float(args.y_max))
+    if do_ccl_comparison == 'yes':
+        ax.plot(l_ccl,dl_ccl,label='ccl')
 
 
     colors = iter(cm.viridis(np.linspace(0, 1, N)))
@@ -364,15 +449,19 @@ def run(args):
                 ax.plot(ell_MM20,cl_cib_cib_2h_MM20,ls='-',label='MM20-2h')
                 print(cib_cib_1h[id_p])
                 print(cib_cib_2h[id_p])
+                # print('ok')
+                print(multipoles[id_p])
                 ax.plot(multipoles[id_p],(cib_cib_2h[id_p]),color='r',ls='--',alpha = 1.,
                 marker =  'o',markersize = 2,
                 label = 'class_sz (2-halo)')
+                # print('ok')
                 ax.plot(multipoles[id_p],(cib_cib_1h[id_p]),color='k',ls='--',alpha = 1.,
                 marker =  '*',markersize = 1,
                 label = 'class_sz (1-halo)')
-                # ax.plot(multipoles[id_p],(cib_cib_1h[id_p]+cib_cib_2h[id_p]),color='grey',ls='-',alpha = 1.,
-                # marker =  '*',markersize = 1,
-                # label = 'class_sz (1+2-halo)')
+                # print('ok')
+                ax.plot(multipoles[id_p],(cib_cib_1h[id_p]+cib_cib_2h[id_p]),color='grey',ls='-',alpha = 1.,
+                marker =  '*',markersize = 1,
+                label = 'class_sz (1+2-halo)')
 
             elif (args.plot_tSZ_cib == 'yes'):
                 print(tSZ_cib_1h[id_p])
@@ -399,15 +488,20 @@ def run(args):
                 ax.plot(multipoles[id_p],multipoles[id_p]*(lens_cib_1h[id_p]+lens_cib_2h[id_p]),color='grey',ls='-',alpha = 1.,
                 marker =  '*',markersize = 1,
                 label = 'class_sz hod (1+2-halo)')
-
+            # print('ok3')
             ax.legend(loc=4,ncol = 1)
+            # print('ok4')
             plt.draw()
+            # print('ok5')
             plt.pause(0.05)
-            # if args.mode == 'run':
-            #     #save some results and remove the temporary files
-            #     subprocess.call(['mv',path_to_class+'sz_auxiliary_files/run_scripts/tmp/class-sz_tmp_szpowerspectrum.txt', path_to_class+'sz_auxiliary_files/run_scripts/tmp/' + 'class-sz_szpowerspectrum_' + str(p_val) + '.txt'])
-
+            # print('ok6')
+            if args.mode == 'run':
+                #save some results and remove the temporary files
+                # print('ok3')
+                subprocess.call(['mv',path_to_class+'sz_auxiliary_files/run_scripts/tmp/class-sz_tmp_szpowerspectrum.txt', path_to_class+'sz_auxiliary_files/run_scripts/tmp/' + 'class-sz_szpowerspectrum_' + str(p_val) + '.txt'])
+                # print('ok3')
             id_p += 1
+
 
         #end loop on p over param values
 

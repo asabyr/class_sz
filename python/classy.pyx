@@ -453,8 +453,8 @@ cdef class Class:
 
 
         if "szpowerspectrum" in level:
-            if szpowerspectrum_init(&(self.ba), &(self.th),  &(self.nl), &(self.pm),
-            &(self.tsz),&(self.pr)) == _FAILURE_:
+            if szpowerspectrum_init(&(self.ba), &(self.th), &(self.pt), &(self.nl), &(self.pm),
+            &(self.sp),&(self.le),&(self.tsz),&(self.pr)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.tsz.error_message)
             self.ncp.add("szpowerspectrum")
@@ -1449,6 +1449,8 @@ cdef class Class:
     def get_volume_dVdzdOmega_at_z(self,z):
         return get_volume_at_z(z,&self.ba)
 
+    def get_galaxy_number_counts(self,z):
+        return get_galaxy_number_counts(z,&self.tsz)
 
 
     def get_cov_N_N(self):
@@ -1499,14 +1501,69 @@ cdef class Class:
         cl['1h'] = []
         cl['2h'] = []
         cl['3h'] = []
+        cl['1h (slow)'] = []
+        cl['2h (slow)'] = []
+        cl['3h (slow)'] = []
         cl['hf'] = []
+        cl['covmat'] = []
+        cl['lensing term'] = []
         for index in range(self.tsz.nlSZ):
-            cl['1h'].append(self.tsz.cl_kSZ_kSZ_gal_1h[index])
-            cl['2h'].append(self.tsz.cl_kSZ_kSZ_gal_2h[index])
-            cl['3h'].append(self.tsz.cl_kSZ_kSZ_gal_3h[index])
+            cl['1h (slow)'].append(self.tsz.cl_kSZ_kSZ_gal_1h[index])
+            cl['2h (slow)'].append(self.tsz.cl_kSZ_kSZ_gal_2h[index])
+            cl['3h (slow)'].append(self.tsz.cl_kSZ_kSZ_gal_3h[index])
             cl['hf'].append(self.tsz.cl_kSZ_kSZ_gal_hf[index])
+            cl['1h'].append(self.tsz.cl_kSZ_kSZ_gal_1h_fft[index])
+            cl['2h'].append(self.tsz.cl_kSZ_kSZ_gal_2h_fft[index])
+            cl['3h'].append(self.tsz.cl_kSZ_kSZ_gal_3h_fft[index])
+            cl['lensing term'].append(self.tsz.cl_kSZ_kSZ_gal_lensing_term[index])
+            cl['covmat'].append(self.tsz.cov_ll_kSZ_kSZ_gal[index])
             cl['ell'].append(self.tsz.ell[index])
         return cl
+
+    def cl_kSZ_kSZ_kg(self):
+        """
+        (class_sz) Return the 1-halo, 2-halo and 3-halo terms of kSZ x kSZ x kg power spectrum
+        """
+        cl = {}
+        cl['ell'] = []
+        cl['1h'] = []
+        cl['2h'] = []
+        cl['3h'] = []
+        cl['hf'] = []
+        cl['covmat'] = []
+        cl['lensing term'] = []
+        for index in range(self.tsz.nlSZ):
+            cl['hf'].append(self.tsz.cl_kSZ_kSZ_gallens_hf[index])
+            cl['1h'].append(self.tsz.cl_kSZ_kSZ_gallens_1h_fft[index])
+            cl['2h'].append(self.tsz.cl_kSZ_kSZ_gallens_2h_fft[index])
+            cl['3h'].append(self.tsz.cl_kSZ_kSZ_gallens_3h_fft[index])
+            cl['lensing term'].append(self.tsz.cl_kSZ_kSZ_gallens_lensing_term[index])
+            cl['covmat'].append(self.tsz.cov_ll_kSZ_kSZ_gallens[index])
+            cl['ell'].append(self.tsz.ell[index])
+        return cl
+
+    def cl_kSZ_kSZ_kcmb(self):
+        """
+        (class_sz) Return the 1-halo, 2-halo and 3-halo terms of kSZ x kSZ x kg power spectrum
+        """
+        cl = {}
+        cl['ell'] = []
+        cl['1h'] = []
+        cl['2h'] = []
+        cl['3h'] = []
+        cl['hf'] = []
+        cl['covmat'] = []
+        cl['lensing term'] = []
+        for index in range(self.tsz.nlSZ):
+            cl['hf'].append(self.tsz.cl_kSZ_kSZ_lens_hf[index])
+            cl['1h'].append(self.tsz.cl_kSZ_kSZ_lens_1h_fft[index])
+            cl['2h'].append(self.tsz.cl_kSZ_kSZ_lens_2h_fft[index])
+            cl['3h'].append(self.tsz.cl_kSZ_kSZ_lens_3h_fft[index])
+            cl['lensing term'].append(self.tsz.cl_kSZ_kSZ_lens_lensing_term[index])
+            cl['covmat'].append(self.tsz.cov_ll_kSZ_kSZ_lens[index])
+            cl['ell'].append(self.tsz.ell[index])
+        return cl
+
 
 
     def cl_te_y_y(self):
@@ -1549,6 +1606,52 @@ cdef class Class:
             cl['2h'].append(self.tsz.cl_gal_gal_2h[index])
             cl['ell'].append(self.tsz.ell[index])
         return cl
+
+
+    def cl_ksz(self):
+        """
+        (class_sz) Return the 1-halo and 2-halo terms of kszxksz power spectrum
+        """
+        cl = {}
+        cl['ell'] = []
+        cl['1h'] = []
+        cl['2h'] = []
+        for index in range(self.tsz.nlSZ):
+            cl['1h'].append(self.tsz.cl_kSZ_kSZ_1h[index])
+            cl['2h'].append(self.tsz.cl_kSZ_kSZ_2h[index])
+            cl['ell'].append(self.tsz.ell[index])
+        return cl
+
+
+    def cl_ggamma(self):
+        """
+        (class_sz) Return the 1-halo and 2-halo terms of galaxy x galaxy lensing power spectrum
+        """
+        cl = {}
+        cl['ell'] = []
+        cl['1h'] = []
+        cl['2h'] = []
+        for index in range(self.tsz.nlSZ):
+            cl['1h'].append(self.tsz.cl_gal_gallens_1h[index])
+            cl['2h'].append(self.tsz.cl_gal_gallens_2h[index])
+            cl['ell'].append(self.tsz.ell[index])
+        return cl
+
+    def gamma_ggamma(self):
+        """
+        (class_sz) Return the 1-halo and 2-halo terms of tangential shear
+        """
+        cl = {}
+        cl['thetas'] = []
+        cl['1h'] = []
+        cl['2h'] = []
+        for index in range(self.tsz.nlSZ):
+            cl['1h'].append(self.tsz.gamma_gal_gallens_1h[index])
+            cl['2h'].append(self.tsz.gamma_gal_gallens_2h[index])
+            cl['thetas'].append(self.tsz.thetas_arcmin[index])
+        return cl
+
+
 
 
     def cl_kg(self):
@@ -1597,6 +1700,22 @@ cdef class Class:
         return cl
 
 
+    def bk_ttg_at_z_hm(self):
+        """
+        (class_sz) Return the 1-halo, 2-halo and 3-halo terms of 3d B(k) ttg bispectrum
+        """
+        cl = {}
+        cl['k'] = []
+        cl['1h'] = []
+        cl['2h'] = []
+        cl['3h'] = []
+        for index in range(self.tsz.n_k_for_pk_hm):
+            cl['1h'].append(self.tsz.bk_ttg_at_z_1h[index])
+            cl['2h'].append(self.tsz.bk_ttg_at_z_2h[index])
+            cl['3h'].append(self.tsz.bk_ttg_at_z_3h[index])
+            cl['k'].append(self.tsz.k_for_pk_hm[index])
+        return cl
+
     def pk_gg_at_z_hm(self):
         """
         (class_sz) Return the 1-halo and 2-halo terms of 3d P(k) gg power spectrum
@@ -1608,6 +1727,20 @@ cdef class Class:
         for index in range(self.tsz.n_k_for_pk_hm):
             cl['1h'].append(self.tsz.pk_gg_at_z_1h[index])
             cl['2h'].append(self.tsz.pk_gg_at_z_2h[index])
+            cl['k'].append(self.tsz.k_for_pk_hm[index])
+        return cl
+
+    def pk_bb_at_z_hm(self):
+        """
+        (class_sz) Return the 1-halo and 2-halo terms of 3d P(k) bb power spectrum
+        """
+        cl = {}
+        cl['k'] = []
+        cl['1h'] = []
+        cl['2h'] = []
+        for index in range(self.tsz.n_k_for_pk_hm):
+            cl['1h'].append(self.tsz.pk_bb_at_z_1h[index])
+            cl['2h'].append(self.tsz.pk_bb_at_z_2h[index])
             cl['k'].append(self.tsz.k_for_pk_hm[index])
         return cl
 
@@ -1627,18 +1760,15 @@ cdef class Class:
 
     def cib_monopole(self):
         """
-
+        (class_sz) Return the cib monopole as a function of frequency
         """
         cl = {}
         cl['nu'] = []
         cl['I0'] = []
-
         for index in range(self.tsz.n_frequencies_for_cib):
             cl['nu'].append(self.tsz.frequencies_for_cib[index])
             cl['I0'].append(self.tsz.cib_monopole[index])
-
         return cl
-
 
     def cl_cib_cib(self):
         """
@@ -1873,6 +2003,18 @@ cdef class Class:
         r = get_dydz_at_z(z,&self.tsz)
         return r
 
+    def get_mean_y(self,z):
+        r = self.tsz.y_monopole
+        return r
+
+    def get_mean_galaxy_bias_at_z(self,z):
+        return get_mean_galaxy_bias_at_z(z,&self.tsz)
+
+    def get_gnu_tsz_of_nu_in_ghz(nu_in_ghz,Tcmb):
+        r = gnu_tsz_of_nu_in_ghz(nu_in_ghz,Tcmb)
+        return r
+
+
     def get_hmf_counter_term_nmin_at_z(self,z):
         return get_hmf_counter_term_nmin_at_z(z,&self.tsz)
 
@@ -1882,14 +2024,14 @@ cdef class Class:
     def get_hmf_counter_term_b2min_at_z(self,z):
         return get_hmf_counter_term_b2min_at_z(z,&self.tsz)
 
-    def get_gas_density_profile_at_l_M_z(self,l_asked,m_asked,z_asked, include_normalization = 'no'):
+    def get_gas_density_profile_at_k_M_z(self,l_asked,m_asked,z_asked, include_normalization = 'no'):
         tau_normalization = 1.
         #if (include_normalization == 'yes'):
         #    if (self.tsz.tau_profile == 0): # nfw case
         #        rho0 =  mvir
         #        tau_normalization =  self.ba.Omega0_b/self.tsz.Omega_m_0/self.tsz.mu_e*self.tsz.f_free
         #    elif (self.tsz.tau_profile == 1): # nfw case
-        return tau_normalization*get_gas_density_profile_at_l_M_z(l_asked,m_asked,z_asked,&self.tsz)
+        return tau_normalization*get_gas_density_profile_at_k_M_z(l_asked,m_asked,z_asked,&self.tsz)
 
     def get_r_delta_of_m_delta_at_z(self,delta,m_delta,z):
         return (m_delta*3./4./np.pi/delta/self.get_rho_crit_at_z(z))**(1./3.)
@@ -1899,6 +2041,9 @@ cdef class Class:
 
     def get_c200m_at_m_and_z_D08(self,M,z):
         return get_c200m_at_m_and_z_D08(M,z)
+
+    def get_c200c_at_m_and_z_D08(self,M,z):
+        return get_c200c_at_m_and_z_D08(M,z)
 
     def get_f_b(self):
         return self.ba.Omega0_b/self.tsz.Omega_m_0
@@ -1929,6 +2074,7 @@ cdef class Class:
                                           alpha_z_alpha = 0.19,
                                           alpha_z_beta = -0.025,
                                           gamma = -0.2,
+                                          xc = 0.5
                                           ):
         return get_gas_profile_at_x_M_z_b16_200c(r_asked,
                                                  m_asked,
@@ -1943,9 +2089,58 @@ cdef class Class:
                                                  alpha_z_alpha,
                                                  alpha_z_beta,
                                                  gamma,
+                                                 xc,
                                                  &self.ba,
                                                  &self.tsz)
 
+    def get_pressure_P_over_P_delta_at_x_M_z_b12_200c(self,
+                                                        x_asked,
+                                                        m_asked,
+                                                        z_asked,
+                                                        A_P0 = 18.1,
+                                                        A_xc = 0.497,
+                                                        A_beta = 4.35,
+                                                        alpha_m_P0 = 0.154,
+                                                        alpha_m_xc = -0.00865,
+                                                        alpha_m_beta = 0.0393,
+                                                        alpha_z_P0 = -0.758,
+                                                        alpha_z_xc = 0.731,
+                                                        alpha_z_beta = 0.415,
+                                                        alpha = 1.,
+                                                        gamma = -0.3):
+        return  get_pressure_P_over_P_delta_at_x_M_z_b12_200c(x_asked,
+                                                              m_asked,
+                                                              z_asked,
+                                                              A_P0,
+                                                              A_xc,
+                                                              A_beta,
+                                                              alpha_m_P0,
+                                                              alpha_m_xc,
+                                                              alpha_m_beta,
+                                                              alpha_z_P0,
+                                                              alpha_z_xc,
+                                                              alpha_z_beta,
+                                                              alpha,
+                                                              gamma,
+                                                              &self.ba,
+                                                              &self.tsz)
+
+
+    def get_pressure_P_over_P_delta_at_x_gnfw_500c(self,
+                                                     x_asked,
+                                                     P0GNFW = 8.130,
+                                                     alphaGNFW = 1.0620,
+                                                     betaGNFW = 5.4807,
+                                                     gammaGNFW = 0.3292,
+                                                     c500 = 1.156):
+        return  get_pressure_P_over_P_delta_at_x_gnfw_500c(x_asked,
+                                                           P0GNFW,
+                                                           alphaGNFW,
+                                                           betaGNFW,
+                                                           gammaGNFW,
+                                                           c500,
+                                                           &self.ba,
+                                                           &self.tsz)
     def get_dA(self,z):
         """
         angular_distance(z) in Mpc/h
@@ -1977,11 +2172,18 @@ cdef class Class:
     def get_rad_to_arcmin(self,theta_rad):
         return (60.*180.)/np.pi*theta_rad
 
+    def get_truncated_nfw_profile_at_z_k_rd_cd_xout(self,z,k,r_delta,c_delta,xout):
+        return evaluate_truncated_nfw_profile(z,k,r_delta,c_delta,xout)
+
     def get_arcmin_to_rad(self,theta_arcmin):
         return np.pi/(60.*180.)*theta_arcmin
 
     def get_gas_profile_at_x_M_z_nfw_200m(self,r_asked,m_asked,z_asked):
         return get_gas_profile_at_x_M_z_nfw_200m(r_asked,m_asked,z_asked,&self.ba,&self.tsz)
+
+    def get_gas_profile_at_x_M_z_nfw_200c(self,r_asked,m_asked,z_asked):
+        return get_gas_profile_at_x_M_z_nfw_200c(r_asked,m_asked,z_asked,&self.ba,&self.tsz)
+
 
     def get_second_order_bias_at_z_and_nu(self,z,nu):
         return get_second_order_bias_at_z_and_nu(z,nu,&self.tsz,&self.ba)
@@ -2088,8 +2290,8 @@ cdef class Class:
         Ns = HOD_mean_number_of_satellite_galaxies(z,M_halo,Nc_mean,M_min,alpha_s,M1_prime,&self.tsz,&self.ba)
         return Ns
 
-    def get_N_centrals(self,double z,double M_halo,double M_min,double sigma_log10M):
-        Nc = HOD_mean_number_of_central_galaxies(z,M_halo,M_min,sigma_log10M,&self.tsz,&self.ba)
+    def get_N_centrals(self,double z,double M_halo,double M_min,double sigma_log10M,double fc):
+        Nc = HOD_mean_number_of_central_galaxies(z,M_halo,M_min,sigma_log10M,fc,&self.tsz,&self.ba)
         return Nc
 
 
@@ -2225,6 +2427,12 @@ cdef class Class:
         return get_nu_at_z_and_m(z,m,&self.tsz,&self.ba)
     def get_matter_bispectrum_at_z_effective_approach_smoothed(self,k1_in_h_over_Mpc,k2_in_h_over_Mpc,k3_in_h_over_Mpc,z):
         return get_matter_bispectrum_at_z_effective_approach_smoothed(k1_in_h_over_Mpc,k2_in_h_over_Mpc,k3_in_h_over_Mpc,z,&self.tsz,&self.ba,&self.nl,&self.pm)
+
+    def get_ttg_bispectrum_at_z_effective_approach(self,k1_in_h_over_Mpc,k2_in_h_over_Mpc,k3_in_h_over_Mpc,z):
+        return get_ttg_bispectrum_at_z_effective_approach(k1_in_h_over_Mpc,k2_in_h_over_Mpc,k3_in_h_over_Mpc,z,&self.tsz,&self.ba,&self.nl,&self.pm)
+
+    def get_ttg_bispectrum_at_z_tree_level_PT(self,k1_in_h_over_Mpc,k2_in_h_over_Mpc,k3_in_h_over_Mpc,z):
+        return get_ttg_bispectrum_at_z_tree_level_PT(k1_in_h_over_Mpc,k2_in_h_over_Mpc,k3_in_h_over_Mpc,z,&self.tsz,&self.ba,&self.nl,&self.pm)
 
     def get_matter_bispectrum_at_z_effective_approach(self,k1_in_h_over_Mpc,k2_in_h_over_Mpc,k3_in_h_over_Mpc,z):
         return get_matter_bispectrum_at_z_effective_approach(k1_in_h_over_Mpc,k2_in_h_over_Mpc,k3_in_h_over_Mpc,z,&self.tsz,&self.ba,&self.nl,&self.pm)

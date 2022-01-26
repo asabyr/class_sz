@@ -8,7 +8,7 @@ CLASS_SZ
 
 
 In addition to SZ power spectrum, class_sz can compute cross and auto power spectra for other tracers
-in the halo model (kSZ, galaxy, ISW, lensing and CIB).
+in the halo model (kSZ, galaxy, galaxy-lensing, ISW, CMB lensing and CIB).
 
 It has several mass functions implemented, with several possible halo mass definitions and concentration-mass
 relations. For galaxy clustering and lensing, class_sz has an implementation of HOD based on the one used by
@@ -25,7 +25,7 @@ matter clustering) is always consistent with the cosmological model.
 
 https://github.com/borisbolliet/class_sz/blob/master/notebooks/class_sz_plots_and_tutorial.ipynb
 
-The code is currently in development, don't hesitate to reach out if anything is unclear due to lack of comments and indications, or if it crashes unexpectedly.
+The code is currently in development, don't hesitate to reach out if you would like to use the code and need assistance.
 
 CLASS_SZ is an extension of Julien Lesgourgues's CLASS code.
 
@@ -35,7 +35,7 @@ CLASS_SZ is initially based on Eiichiro Komatsu’s fortran code SZFAST.
 
 (See http://wwwmpa.mpa-garching.mpg.de/~komatsu/CRL/clusters/szpowerspectrumks/)
 
-CLASS_SZ modules are located in the files **source/class_sz.c** and **source/szclustercount.c**.
+CLASS_SZ modules are located in the files **source/class_sz.c** and **source/class_sz_clustercounts.c**.
 
 
 CLASS_SZ's outputs are regularly cross-checked with other halo model codes, such as:
@@ -63,15 +63,21 @@ Using the code
 
 The **class_sz** code is public.
 
-References:
+Some References.
+
+The first papers using class_sz were:
 
 `Including massive neutrinos in thermal Sunyaev Zeldovich power spectrum and cluster counts analyses (Bolliet, Brinckmann, Chluba, Lesgourgues, 2020) <https://arxiv.org/abs/1906.10359>`_.
 
 `Dark Energy from the Thermal Sunyaev Zeldovich Power Spectrum (Bolliet, Comis, Komatsu, Macias-Perez, 2017)
 <https://arxiv.org/abs/1712.00788>`_.
 
+If you use the code, please also cite the original class papers (since class_sz is an extension of class), e.g.,:
+
 `CLASS II: Approximation schemes (Blas, Lesgourgues, Tram, 2011)
 <http://arxiv.org/abs/1104.2933>`_.
+
+As well as the original tSZ power spectrum halo-model paper:
 
 `The Sunyaev-Zel'dovich angular power spectrum as a probe of cosmological parameters (Komatsu and Seljak, 2002)
 <https://arxiv.org/abs/astro-ph/0205468>`_.
@@ -100,6 +106,8 @@ If you do not want to compile the **classy** python module do ‘$ make class’
 For the python module, you need the prerequisites such as **numpy**, **scipy**
 and **Cython** installed on your computer.
 
+(class_sz also works on the new mac M1 chips.)
+
 Run the code with most of the power spectra output:
 
     $ ./class class-sz_test.ini
@@ -109,8 +117,10 @@ Run the code with a simple tSZ computation:
     $ ./class class-sz_simple.ini
 
 
-The  'ini' files are the parameter file.
-I will be releasing a detailed explanatory file soon.
+The  'ini' files are the parameter files. I will be releasing a detailed explanatory file soon.
+
+If any of these two ini files crash, it simply means that the installation was not successful. In this case, please read carefully this readme file and follow the instructions given below. If you are still not able to run these test files, please get in touch.
+If nothing appears to solve your installation issues: it is a good idea to try installing the original class code and check that it runs as well as its python wrapper (e.g., the notebook cl_ST.ipynb). If the class code does not run on your system, you should consult the issue page of the class repository and first make sure you solve your issues with the original class code, before moving to class_sz.
 
 
 Computing SZ and Halo model quantities via the Python wrapper classy_sz
@@ -147,13 +157,13 @@ One may need to edit the **Makefile** adding the include path for gsl libraries,
 
     INCLUDES = -I../include -I/usr/local/include/ **-I/path_to_gsl/gsl-2.6/include/**
 
-    class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS) $(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -g -o class $(addprefix build/,$(notdir $^)) -lm **-L/path_to_gsl/gsl-2.6/lib/ -lgsl -lgslcblas**
+    class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS) $(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -g -o class $(addprefix build/,$(notdir $^)) -lm **-L/path_to_gsl/gsl-2.6/lib/ -lgsl -lgslcblas** -lfftw3
 
 For the python wrapper, one also may need to add the absolute path to gsl libraries, e.g.,:
 
 in **class_sz/python/setup.py**:
 
-    classy_ext = Extension("classy", [os.path.join(classy_folder, "classy.pyx")], include_dirs=[nm.get_include(), include_folder, '**/path/to/gsl-2.6/include**'], libraries=liblist,library_dirs=[root_folder, GCCPATH],extra_link_args=['-lgomp','**-L/path_to_gsl/gsl-2.6/lib/**','**-lgsl**','**-lgslcblas**'])
+    classy_ext = Extension("classy", [os.path.join(classy_folder, "classy.pyx")], include_dirs=[nm.get_include(), include_folder, '**/path/to/gsl-2.6/include**'], libraries=liblist,library_dirs=[root_folder, GCCPATH],extra_link_args=['-lgomp','**-L/path_to_gsl/gsl-2.6/lib/**','**-lgsl**','**-lgslcblas**',-lfftw3])
 
 
 
@@ -165,12 +175,22 @@ need to do:
     $ export LD_LIBRARY_PATH
 
 Note that these prescriptions are system dependent: you may not need them if your path and environment variables are such that gsl and its libraries are well linked.
+If you are tired of having to execute these lines each time you run codes in a fresh terminal, just paste them in your bash profile file (the one that ends with .sh).
 
 FFTLog library
 ------------------------------
 
 class_sz now requires FFTW3 library, used for the computations of kSZ^2 x LSS power spectra and bispectra.
 
+If the code complains about the library not being found, just make sure you followed the same installation instruction as you did for gsl.
+Namely, edit the the Makefile with the path to the include files (the ones that end with '.h') -I/path_to_fftw3/fftw3/include/, the path to the library files (the ones that end with .so,.a, .dylib, and so on) -L/path_to_fftw3/fftw3/lib/. The setup.py file may also need to be amended accordingly.
+And also make sure you do:
+
+    $ LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path_to_fftw3/fftw3/lib
+
+    $ export LD_LIBRARY_PATH
+
+if the previous modifs were not enough.
 
 MacOS problem with OpenMP
 ------------------------------
@@ -205,4 +225,4 @@ To get support on the class_sz module, feel free to contact me via slack/email (
 Acknowledgment
 -------
 
-Thanks to  Juan Macias-Perez, Eiichiro Komatsu, Ryu Makiya, Barabara Comis, Julien Lesgourgues, Jens Chluba, Colin Hill, Florian Ruppin, Thejs Brinckmann, Aditya Rotti, Mathieu Remazeilles, David Alonso, Nick Koukoufilippas, Fiona McCarthy, Eunseong Lee, Ola Kusiak, Simone Ferraro, Mat Madhavacheril, Manu Schaan, for help, suggestions and/or running tests with **class_sz**.
+Thanks to  Juan Macias-Perez, Eiichiro Komatsu, Ryu Makiya, Barabara Comis, Julien Lesgourgues, Jens Chluba, Colin Hill, Florian Ruppin, Thejs Brinckmann, Aditya Rotti, Mathieu Remazeilles, David Alonso, Nick Koukoufilippas, Fiona McCarthy, Eunseong Lee, Ola Kusiak, Simone Ferraro, Mat Madhavacheril, Manu Schaan, Shivam Pandey for help, suggestions and/or running tests with **class_sz**.
