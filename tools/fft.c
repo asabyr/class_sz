@@ -1,12 +1,13 @@
-# include <stdlib.h>
-# include <stdio.h>
-# include <time.h>
-# include  <math.h>
-# include  "fft.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+#include  <math.h>
+#include  "fft.h"
+#include  "common.h"
 // #include <complex.h>
 #include <gsl/gsl_sf_gamma.h>
 #include <gsl/gsl_math.h>
-# include <fftw3.h>
+#include <fftw3.h>
 
 // #ifndef _PI_
 //     #define _PI_ 3.14159265358979323846
@@ -872,8 +873,8 @@ void fftlog_ComputeXiLM_cl2gamma(int l, int m, int N, const double k[], const do
         a[i] = pow(k[i], 1 ) * pk[i]; //dim = 2 in our case
     fht(N, k, a, r, b, 2, 0, 1, 1, NULL, ptsz);
     for(i = 0; i < N; i++)
-        xi[i] = creal(pow(2*M_PI*r[i], -1) * b[i]);
-        // xi[i] = creal(pow(2*M_PI*r[i], -1.5) * b[i]);
+        xi[i] = creal(pow(2*_PI_*r[i], -1) * b[i]);
+        // xi[i] = creal(pow(2*_PI_*r[i], -1.5) * b[i]);
     //
     free(a);
     free(b);
@@ -904,8 +905,9 @@ void cl2gamma(int N, const double k[], const double pk[], double r[], double xi[
 }
 
 void gamma2cl(int N, const double r[], const double xi[], double k[], double pk[], struct tszspectrum * ptsz) {
-    // static const double TwoPiCubed = 8*M_PI*M_PI*M_PI;
-    static const double TwoPiCubed = pow(2.*M_PI,2.);///2./pow(2.*M_PI,-3)/4./pow(M_PI,3);
+    // static const double TwoPiCubed = 8*_PI_*_PI_*_PI_;
+    //static const 
+    double TwoPiCubed = pow(2.*_PI_,2.);///2./pow(2.*_PI_,-3)/4./pow(_PI_,3);
     // fftlog_ComputeXiLM(0, 2, N, r, xi, k, pk, ptsz);
     fftlog_ComputeXiLM_cl2gamma(0, 1, N, r, xi, k, pk, ptsz);
     int j;
