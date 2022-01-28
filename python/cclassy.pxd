@@ -278,10 +278,16 @@ cdef extern from "class.h":
         double phi0SZ
         double eta0SZ
         double sigma8_Pcb
+
+        double y_monopole
+
+
+        double * cib_frequency_list
         double * frequencies_for_cib
         double * cib_monopole
-        double y_monopole
         int n_frequencies_for_cib
+        int cib_frequency_list_num
+
         double * ell
         double * cl_sz_1h
         double * cl_sz_2h
@@ -332,11 +338,7 @@ cdef extern from "class.h":
         double **  cl_gal_cib_2h
         double **  cl_lens_cib_1h
         double **  cl_lens_cib_2h
-        double * cib_frequency_list
-        double * frequencies_for_cib
-        double * cib_monopole
-        int n_frequencies_for_cib
-        int cib_frequency_list_num
+
         double * pk_at_z_1h
         double * pk_at_z_2h
         double * bk_at_z_1h

@@ -11482,7 +11482,7 @@ double integrand_dcib0dz(double lnM_halo, void *p){
       // multiply by volume element:
       double H_over_c_in_h_over_Mpc = V->pvecback[V->pba->index_bg_H]/V->pba->h;
       // result *= V->pvectsz[V->ptsz->index_chi2]/H_over_c_in_h_over_Mpc;
-      result *= (1.+z)/H_over_c_in_h_over_Mpc;
+      result *= 1./(1.+z)/H_over_c_in_h_over_Mpc;
 
   return result;
 
@@ -13370,7 +13370,7 @@ for (index_z=0; index_z<ptsz->n_z_psi_b1kgt; index_z++)
           V.l2 = l2;
 
           void * params = &V;
-          double epsrel=1e-3;
+          double epsrel=1e-6;
           double epsabs=1e-100;
 
 
@@ -13512,7 +13512,7 @@ for (index_z=0; index_z<ptsz->n_z_dydz; index_z++)
 
 
           void * params = &V;
-          double epsrel=1e-3;
+          double epsrel=1e-6;
           double epsabs=1e-100;
 
 
