@@ -13994,7 +13994,7 @@ if (S_nu*1e3 > ptsz->cib_Snu_cutoff_list_in_mJy[index_nu]){
 }
 
 // eq. 13 of MM20
-ug_at_ell  = 1./(4.*_PI_)*(Lc_nu+Ls_nu*us);
+ug_at_ell  = 1./(4.*_PI_)*(1+ptsz->z_obs_cib)*(Lc_nu+Ls_nu*us);
 
 }// end 2halo terms and monopole
 
@@ -14029,7 +14029,7 @@ if (S_nu*1e3 > ptsz->cib_Snu_cutoff_list_in_mJy[index_nu_prime]){
 }
 
 // eq. 15 of MM20
-ug_at_ell  = 1./(4.*_PI_)*sqrt(Ls_nu*Ls_nu_prime*us*us+Lc_nu*Ls_nu_prime*us+Lc_nu_prime*Ls_nu*us);
+ug_at_ell  = 1./(4.*_PI_)*(1+ptsz->z_obs_cib)*sqrt(Ls_nu*Ls_nu_prime*us*us+Lc_nu*Ls_nu_prime*us+Lc_nu_prime*Ls_nu*us);
 
 }
 // need to fix units:
