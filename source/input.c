@@ -5782,15 +5782,15 @@ int input_default_params(
   ptsz->n_m_dndlnM = 500;
 
 
-  ptsz->M1SZ_L_sat = 1.e9;
-  ptsz->M2SZ_L_sat = 1.e17;
-  ptsz->z1SZ_L_sat = 1.e-3;
-  ptsz->z2SZ_L_sat = 6.;
-  ptsz->n_z_L_sat = 101;
-  ptsz->n_m_L_sat = 102;
-  ptsz->n_nu_L_sat = 103;
-  ptsz->epsabs_L_sat = 1e-15;
-  ptsz->epsrel_L_sat = 1e-6;
+  // ptsz->M1SZ_L_sat = 1.e9;
+  // ptsz->M2SZ_L_sat = 1.e17;
+  // ptsz->z1SZ_L_sat = 1.e-3;
+  // ptsz->z2SZ_L_sat = 6.;
+  // ptsz->n_z_L_sat = 101;
+  // ptsz->n_m_L_sat = 102;
+  // ptsz->n_nu_L_sat = 103;
+  // ptsz->epsabs_L_sat = 1e-15;
+  // ptsz->epsrel_L_sat = 1e-6;
 
   ptsz->convert_cls_to_gamma = 0;
 
