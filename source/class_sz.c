@@ -14037,7 +14037,7 @@ ug_at_ell  = 1./(4.*_PI_)*sqrt(Ls_nu*Ls_nu_prime*us*us+Lc_nu*Ls_nu_prime*us+Lc_n
 ug_at_ell *= pow(pba->h,2.);
 
 
-pvectsz[ptsz->index_cib_profile] = (1+ptsz->z_obs_cib)*ug_at_ell;
+pvectsz[ptsz->index_cib_profile] = ug_at_ell;
 
 }
 
