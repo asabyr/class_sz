@@ -1202,6 +1202,7 @@ cdef class Class:
 
         return D_A
 
+
     def scale_independent_growth_factor(self, z):
         """
         scale_independent_growth_factor(z)
@@ -1446,6 +1447,18 @@ cdef class Class:
             cl['ell'].append(self.tsz.ell[index])
         return cl
 
+    def cl_sz_at_nu_in_GHz_in_microK2(self,nu_in_GHz):
+        frequency_in_Hz = nu_in_GHz*1e9
+        T_cmb = self.T_cmb()
+        _h_P_=6.62606896e-34
+        _k_B_=1.3806504e-23
+        Tcmb_gNU = T_cmb*((_h_P_*frequency_in_Hz/(_k_B_*T_cmb))*(1./np.tanh((_h_P_*frequency_in_Hz/(_k_B_*T_cmb))/2.))-4.)
+        r = {}
+        r['ell'] = np.asarray(self.cl_sz()['ell'])
+        r['1h'] = np.asarray(self.cl_sz()['1h'])*Tcmb_gNU**2.
+        r['2h'] = np.asarray(self.cl_sz()['2h'])*Tcmb_gNU**2.
+        return r
+
     def get_volume_dVdzdOmega_at_z(self,z):
         return get_volume_at_z(z,&self.ba)
 
@@ -1478,6 +1491,20 @@ cdef class Class:
         cl['mass_bin_edges'] = np.array(cl['mass_bin_edges'])
         return cl
 
+    def cl_kg_kg(self):
+        """
+        (class_sz) Return the 1-halo and 2-halo terms of galaxy-lensing x galaxy-lensing power spectrum
+        """
+        cl = {}
+        cl['ell'] = []
+        cl['1h'] = []
+        cl['2h'] = []
+        for index in range(self.tsz.nlSZ):
+            cl['1h'].append(self.tsz.cl_gallens_gallens_1h[index])
+            cl['2h'].append(self.tsz.cl_gallens_gallens_2h[index])
+            cl['ell'].append(self.tsz.ell[index])
+        return cl
+
     def cl_yg(self):
         """
         (class_sz) Return the 1-halo and 2-halo terms of y x g power spectrum
@@ -1491,6 +1518,7 @@ cdef class Class:
             cl['2h'].append(self.tsz.cl_tSZ_gal_2h[index])
             cl['ell'].append(self.tsz.ell[index])
         return cl
+
 
     def cl_kSZ_kSZ_g(self):
         """
@@ -1593,6 +1621,31 @@ cdef class Class:
         return cl
 
 
+    def cl_y_kcmb(self):
+        """
+        (class_sz) Return the 1-halo and 2-halo terms of y x k (cmb lensing) power spectrum
+        """
+        cl = {}
+        cl['ell'] = []
+        cl['1h'] = []
+        cl['2h'] = []
+        for index in range(self.tsz.nlSZ):
+            cl['1h'].append(self.tsz.cl_tSZ_lens_1h[index])
+            cl['2h'].append(self.tsz.cl_tSZ_lens_2h[index])
+            cl['ell'].append(self.tsz.ell[index])
+        return cl
+
+    def cl_t2t2f(self):
+        cl = {}
+        cl['ell'] = []
+        cl['t2t2f'] = []
+        for index in range(self.tsz.nlSZ):
+            cl['ell'].append(self.tsz.ell[index])
+            cl['t2t2f'].append(self.tsz.cl_t2t2f[index])
+        return cl
+
+
+
     def cl_gg(self):
         """
         (class_sz) Return the 1-halo and 2-halo terms of gxg power spectrum
@@ -1601,9 +1654,11 @@ cdef class Class:
         cl['ell'] = []
         cl['1h'] = []
         cl['2h'] = []
+        cl['hf'] = []
         for index in range(self.tsz.nlSZ):
             cl['1h'].append(self.tsz.cl_gal_gal_1h[index])
             cl['2h'].append(self.tsz.cl_gal_gal_2h[index])
+            cl['hf'].append(self.tsz.cl_gal_gal_hf[index])
             cl['ell'].append(self.tsz.ell[index])
         return cl
 
@@ -1651,9 +1706,6 @@ cdef class Class:
             cl['thetas'].append(self.tsz.thetas_arcmin[index])
         return cl
 
-
-
-
     def cl_kg(self):
         """
         (class_sz) Return the 1-halo and 2-halo terms of kappa (lensing) x galaxy power spectrum
@@ -1662,9 +1714,11 @@ cdef class Class:
         cl['ell'] = []
         cl['1h'] = []
         cl['2h'] = []
+        cl['hf'] = []
         for index in range(self.tsz.nlSZ):
             cl['1h'].append(self.tsz.cl_gal_lens_1h[index])
             cl['2h'].append(self.tsz.cl_gal_lens_2h[index])
+            cl['hf'].append(self.tsz.cl_gal_lens_hf[index])
             cl['ell'].append(self.tsz.ell[index])
         return cl
 
@@ -1744,6 +1798,20 @@ cdef class Class:
             cl['k'].append(self.tsz.k_for_pk_hm[index])
         return cl
 
+    def pk_em_at_z_hm(self):
+        """
+        (class_sz) Return the 1-halo and 2-halo terms of 3d P(k) electron-matter power spectrum
+        """
+        cl = {}
+        cl['k'] = []
+        cl['1h'] = []
+        cl['2h'] = []
+        for index in range(self.tsz.n_k_for_pk_hm):
+            cl['1h'].append(self.tsz.pk_em_at_z_1h[index])
+            cl['2h'].append(self.tsz.pk_em_at_z_2h[index])
+            cl['k'].append(self.tsz.k_for_pk_hm[index])
+        return cl
+
     def cl_kk(self):
         """
         (class_sz) Return the 1-halo and 2-halo terms of kappa x kappa (lensing) power spectrum
@@ -1752,9 +1820,11 @@ cdef class Class:
         cl['ell'] = []
         cl['1h'] = []
         cl['2h'] = []
+        cl['hf'] = []
         for index in range(self.tsz.nlSZ):
             cl['1h'].append(self.tsz.cl_lens_lens_1h[index])
             cl['2h'].append(self.tsz.cl_lens_lens_2h[index])
+            cl['hf'].append(self.tsz.cl_lens_lens_hf[index])
             cl['ell'].append(self.tsz.ell[index])
         return cl
 
@@ -1872,9 +1942,11 @@ cdef class Class:
         cl['ell'] = []
         cl['1h'] = []
         cl['2h'] = []
+        cl['hf'] = []
         for index in range(self.tsz.nlSZ):
             cl['1h'].append(self.tsz.cl_lensmag_lensmag_1h[index])
             cl['2h'].append(self.tsz.cl_lensmag_lensmag_2h[index])
+            cl['hf'].append(self.tsz.cl_lensmag_lensmag_hf[index])
             cl['ell'].append(self.tsz.ell[index])
         return cl
 
@@ -1886,12 +1958,17 @@ cdef class Class:
         cl['ell'] = []
         cl['1h'] = []
         cl['2h'] = []
+        cl['hf'] = []
         for index in range(self.tsz.nlSZ):
             cl['1h'].append(self.tsz.cl_gal_lensmag_1h[index])
             cl['2h'].append(self.tsz.cl_gal_lensmag_2h[index])
+            cl['hf'].append(self.tsz.cl_gal_lensmag_hf[index])
             cl['ell'].append(self.tsz.ell[index])
         return cl
 
+
+    def get_scale_dependent_bias_at_z_and_k(self,z_asked,k_asked,bh):
+        return get_scale_dependent_bias_at_z_and_k(z_asked,k_asked,bh,&self.tsz)
 
     def get_params_sz(self):
         """
@@ -1960,6 +2037,12 @@ cdef class Class:
         """
         return self.tsz.A_cib
 
+    def A_sn(self):
+        """
+        (SZ) Return the foreground A_cib coefficient
+        """
+        return self.tsz.cl_gal_gal_A_sn
+
 
     def A_ir(self):
         """
@@ -1977,11 +2060,18 @@ cdef class Class:
     def get_te_of_m500c_at_z_arnaud(self,m,z):
         return get_te_of_m500c_at_z_arnaud(m,z,&self.ba,&self.tsz)
 
+    def get_lensing_noise_at_ell(self,l):
+        return get_lensing_noise_at_ell(l,&self.tsz)
+
     def get_te_of_m500c_at_z_lee(self,m,z):
         return get_te_of_m500c_at_z_lee(m,z,&self.ba,&self.tsz)
 
-    def get_f_tinker10_at_nu_and_z(self,nu,z,hm_consistency):
-        return get_f_tinker10_at_nu_and_z(nu,z,hm_consistency,&self.tsz)
+    def get_f_tinker10_at_nu_and_z(self,nu,z):
+        return get_f_tinker10_at_nu_and_z(nu,z,&self.tsz)
+
+    def get_f_tinker08_at_nu_and_z(self,nu,z):
+        return get_f_tinker08_at_nu_and_z(nu,z,&self.tsz)
+
 
     def get_T10_alpha_at_z(self,z):
         return get_T10_alpha_at_z(z,&self.tsz)
@@ -2039,11 +2129,20 @@ cdef class Class:
     def get_m200m_to_m200c_at_z_and_M(self,z_asked,m_asked):
         return get_m200m_to_m200c_at_z_and_M(z_asked,m_asked,&self.tsz)
 
+    def get_normalization_gas_density_profile(self,z_asked,m_asked):
+        return get_normalization_gas_density_profile(z_asked,m_asked,&self.tsz)
+
+    def get_m_to_xout_at_z_and_m(self,z_asked,m_asked):
+        return get_m_to_xout_at_z_and_m(z_asked,m_asked,&self.tsz)
+
     def get_c200m_at_m_and_z_D08(self,M,z):
         return get_c200m_at_m_and_z_D08(M,z)
 
     def get_c200c_at_m_and_z_D08(self,M,z):
         return get_c200c_at_m_and_z_D08(M,z)
+
+    def get_c200c_at_m_and_z_B13(self,M,z):
+        return get_c200c_at_m_and_z_B13(M,z,&self.ba,&self.tsz)
 
     def get_f_b(self):
         return self.ba.Omega0_b/self.tsz.Omega_m_0
@@ -2184,6 +2283,8 @@ cdef class Class:
     def get_gas_profile_at_x_M_z_nfw_200c(self,r_asked,m_asked,z_asked):
         return get_gas_profile_at_x_M_z_nfw_200c(r_asked,m_asked,z_asked,&self.ba,&self.tsz)
 
+    def get_planck_sigma_at_theta500(self, theta500):
+        return get_planck_sigma_at_theta500(theta500, &self.tsz)
 
     def get_second_order_bias_at_z_and_nu(self,z,nu):
         return get_second_order_bias_at_z_and_nu(z,nu,&self.tsz,&self.ba)
@@ -2424,6 +2525,7 @@ cdef class Class:
         return bispectrum_f2_kernel(k1, k2, k3)
 
     def get_nu_at_z_and_m(self,z,m):
+        # (delc/sigma)**2
         return get_nu_at_z_and_m(z,m,&self.tsz,&self.ba)
     def get_matter_bispectrum_at_z_effective_approach_smoothed(self,k1_in_h_over_Mpc,k2_in_h_over_Mpc,k3_in_h_over_Mpc,z):
         return get_matter_bispectrum_at_z_effective_approach_smoothed(k1_in_h_over_Mpc,k2_in_h_over_Mpc,k3_in_h_over_Mpc,z,&self.tsz,&self.ba,&self.nl,&self.pm)
