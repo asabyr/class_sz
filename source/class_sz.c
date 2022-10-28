@@ -34,6 +34,7 @@ int szpowerspectrum_init(
 
   int all_comps = ptsz->has_sz_ps
       + ptsz->has_hmf
+      + ptsz->has_n5k
       // + ptsz->has_pk_at_z_1h
       + ptsz->has_pk_at_z_1h
       + ptsz->has_pk_at_z_2h
@@ -674,6 +675,42 @@ tabulate_psi_b1kg(pba,pnl,ppm,ppt,ptsz);
 tabulate_psi_b2kg(pba,pnl,ppm,ptsz);
 tabulate_psi_b1kgt(pba,pnl,ppm,ppt,ptsz);
 }
+
+if (ptsz->has_n5k){
+  load_n5k_pk_zk(ptsz);
+  load_n5k_cl_K1(ptsz);
+  load_n5k_z_of_chi(ptsz);
+  // load_n5k_cl_K2(ptsz);
+  // double pk_interp = get_n5k_pk_at_z_and_k(3.428571428571428381e+00,9.329304026284677320e+01,ptsz);
+  // printf("%.5e\n",pk_interp);
+  // double K1_interp = get_n5k_cl_K1_at_chi(6.565659574734836212e+01,ptsz);
+  // printf("%.5e\n",K1_interp);
+  // double z_interp = get_n5k_z_of_chi(33.,ptsz);
+  // printf("%.5e\n",z_interp);
+  tabulate_n5k_F1(pba,pnl,ppm,ptsz);
+  int index_l;
+  printf("\n");
+  // printf("ell\n");
+  // for (index_l=0; index_l<ptsz->n_l_n5k; index_l++){
+  //
+  //   printf("%d,\n",ptsz->array_n5k_F1_l[index_l]);
+  // }
+  printf("\n");
+  printf("cls\n");
+  char Filepath[_ARGUMENT_LENGTH_MAX_];
+  FILE *fp;
+
+  sprintf(Filepath,"%s%s%s",ptsz->root,"n5k_F",".txt");
+  fp=fopen(Filepath, "w");
+  // char Filepath[_ARGUMENT_LENGTH_MAX_];
+  for (index_l=0; index_l<ptsz->n_l_n5k; index_l++){
+
+    fprintf(fp,"%.5e\n",ptsz->array_n5k_F1_F[index_l]);
+  }
+  fclose(fp);
+
+}
+// exit(0);
 
 if (ptsz->has_kSZ_kSZ_gal_1h_fft
  || ptsz->has_kSZ_kSZ_gal_2h_fft
@@ -2090,7 +2127,8 @@ if (ptsz->has_kSZ_kSZ_gal_1h_fft
    || ptsz->has_kSZ_kSZ_lens_2h_fft
    || ptsz->has_kSZ_kSZ_lens_3h_fft
    || ptsz->has_kSZ_kSZ_lens_covmat
-   || ptsz->convert_cls_to_gamma){
+   || ptsz->convert_cls_to_gamma
+   || ptsz->has_n5k){
   fftw_destroy_plan(ptsz->forward_plan);
   fftw_destroy_plan(ptsz->reverse_plan);
 }
@@ -2394,6 +2432,19 @@ if ( ptsz->has_kSZ_kSZ_gal_1h_fft
   free(ptsz->array_psi_b1t_redshift);
   free(ptsz->array_psi_b1t_multipole);
   free(ptsz->array_psi_b1t_psi);
+}
+
+if (ptsz->has_n5k){
+  free(ptsz->array_n5k_F1_F);
+  free(ptsz->array_n5k_F1_k);
+  free(ptsz->array_n5k_F1_l);
+  free(ptsz->n5k_pk_z);
+  free(ptsz->n5k_pk_k);
+  free(ptsz->n5k_pk_pk);
+  free(ptsz->n5k_cl_K1_K1);
+  free(ptsz->n5k_cl_K1_chi);
+  free(ptsz->n5k_z_of_chi_z);
+  free(ptsz->n5k_z_of_chi_chi);
 }
 
 if (ptsz->sz_verbose>10) printf("-> freeing more kSZ2X.\n");
@@ -9521,6 +9572,7 @@ pvectsz[ptsz->index_lognu] = log(get_nu_at_z_and_m(exp(z_asked)-1.,m_for_hmf,pts
                       ptsz->error_message,
                       ptsz->error_message
                       );
+    // exit(0);
    }
 
 
@@ -10633,7 +10685,7 @@ int write_redshift_dependent_quantities(struct background * pba,
   double rvir = evaluate_rvir_of_mvir(mvir,delc,rhoc,ptsz);
 
   double cvir = evaluate_cvir_of_mvir(mvir,z,ptsz,pba);// 5.72*pow(mvir/1e14,-0.081)/pow(1.+z_asked,0.71);
-  double mdel;
+  double mdel = 1.;
 
   ///double rs = rvir/cvir;
 
@@ -10641,14 +10693,14 @@ int write_redshift_dependent_quantities(struct background * pba,
   double delrho_prime = 500.*rhoc; //500c
 
 
-  class_call(mVIR_to_mDEL(mvir,
-                         rvir,
-                         cvir,
-                         delrho,
-                         &mdel,
-                         ptsz),
-                  ptsz->error_message,
-                  ptsz->error_message);
+  // class_call(mVIR_to_mDEL(mvir,
+  //                        rvir,
+  //                        cvir,
+  //                        delrho,
+  //                        &mdel,
+  //                        ptsz),
+  //                 ptsz->error_message,
+  //                 ptsz->error_message);
 
   mvir_over_m200d = mvir/mdel;
 
@@ -10657,30 +10709,30 @@ int write_redshift_dependent_quantities(struct background * pba,
 
 
 
-  class_call(mDEL_to_mVIR(mdel,
-                         delrho,
-                         delc,
-                         rhoc,
-                         z,
-                         &mvir_recovered,
-                         ptsz,
-                         pba),
-                  ptsz->error_message,
-                  ptsz->error_message);
+  // class_call(mDEL_to_mVIR(mdel,
+  //                        delrho,
+  //                        delc,
+  //                        rhoc,
+  //                        z,
+  //                        &mvir_recovered,
+  //                        ptsz,
+  //                        pba),
+  //                 ptsz->error_message,
+  //                 ptsz->error_message);
 
 
-  double mdel_prime;
-  class_call(mDEL_to_mDELprime(mdel,
-                         delrho,
-                         delrho_prime,
-                         delc,
-                         rhoc,
-                         z,
-                         &mdel_prime,
-                         ptsz,
-                         pba),
-                  ptsz->error_message,
-                  ptsz->error_message);
+  double mdel_prime = 1.;
+  // class_call(mDEL_to_mDELprime(mdel,
+  //                        delrho,
+  //                        delrho_prime,
+  //                        delc,
+  //                        rhoc,
+  //                        z,
+  //                        &mdel_prime,
+  //                        ptsz,
+  //                        pba),
+  //                 ptsz->error_message,
+  //                 ptsz->error_message);
   mvir_over_mvir_recovered = mvir/mvir_recovered;
 
   double cvir_fac = 1.;
@@ -10689,7 +10741,7 @@ int write_redshift_dependent_quantities(struct background * pba,
   double delta= 2.5;
   double delta_prime;
 
-  delta_prime = delta_to_delta_prime_nfw(delta,cvir,cvir_prime,ptsz);
+  delta_prime = 1.;//delta_to_delta_prime_nfw(delta,cvir,cvir_prime,ptsz);
 
 
   fprintf(fp,"%.5e \t %.5e \t %.5e \t %.5e \t %.5e \t %.5e \t %.5e \t %.5e \t %.5e\t %.5e\t %.5e\t %.5e\t %.5e\t %.5e\n",
@@ -13066,7 +13118,9 @@ int initialise_and_allocate_memory(struct tszspectrum * ptsz){
   ||  ptsz->has_kSZ_kSZ_lens_2h_fft
   ||  ptsz->has_kSZ_kSZ_lens_3h_fft
   ||  ptsz->has_kSZ_kSZ_lens_covmat
-  ||  ptsz->convert_cls_to_gamma){
+  ||  ptsz->convert_cls_to_gamma
+  ||  ptsz->has_n5k){
+    if(ptsz->sz_verbose>1) printf("constructing fftw plan\n");
     // ptsz->N_samp_fftw = 100;
     fftw_complex* a_tmp;
     fftw_complex* b_tmp;
@@ -14794,6 +14848,8 @@ if (S_nu*1e3 > ptsz->cib_Snu_cutoff_list_in_mJy[index_nu]){
 }
 else if(_cib_monopole_){
 nu = ptsz->frequencies_for_cib[index_nu];
+// printf("nu = %.8e\n",nu);
+// exit(0);
 Lc_nu = Luminosity_of_central_galaxies(z,M_halo,nu/(1.+ptsz->z_obs_cib),pvectsz,ptsz,pba);
 Ls_nu = get_L_sat_at_z_M_nu(z,M_halo,nu/(1.+ptsz->z_obs_cib),ptsz);
 us = 1.;
@@ -14829,7 +14885,8 @@ if (S_nu*1e3 > ptsz->cib_Snu_cutoff_list_in_mJy[index_nu]){
 }
 // cross terms
 else {
-nu = ptsz->frequencies_for_cib[index_nu];
+// nu = ptsz->frequencies_for_cib[index_nu];
+nu = ptsz->cib_frequency_list[index_nu];
 Lc_nu = Luminosity_of_central_galaxies(z,M_halo,nu,pvectsz,ptsz,pba);
 Ls_nu = get_L_sat_at_z_M_nu(z,M_halo,nu,ptsz);
 if (ptsz->has_cib_flux_cut == 1){
@@ -15298,7 +15355,7 @@ double evaluate_truncated_nfw_profile(//double * pvecback,
 {
 
 //double z = pvectsz[ptsz->index_z];
-
+// c_delta = 5.;
 double q = k*r_delta/c_delta*(1.+z); // uk -> 1 when q->0
 double denominator = m_nfw(xout*c_delta); //normalization
 

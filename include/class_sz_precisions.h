@@ -45,6 +45,7 @@ class_sz_string_parameter(SO_skyfracs_file,"/sz_auxiliary_files/so_3freqs_191121
 class_sz_string_parameter(Planck_ylims_file,"/sz_auxiliary_files/SZ_ylims.txt","Planck_ylims_file")
 class_sz_string_parameter(SO_ylims_file,"/sz_auxiliary_files/so_3freqs_191121_ylims.txt","SO_ylims_file")
 
+class_sz_ptsz_parameter(no_spline_in_tinker,int,0)
 
 class_sz_ptsz_parameter(n_k_density_profile,int,100)
 class_sz_ptsz_parameter(n_m_density_profile,int,100)
@@ -77,6 +78,8 @@ class_sz_ptsz_parameter(n_l_psi_b2kg,int,50)
 class_sz_ptsz_parameter(n_z_psi_b1t,int,80)
 class_sz_ptsz_parameter(n_l_psi_b1t,int,80)
 
+class_sz_ptsz_parameter(n_k_n5k,int,50)
+class_sz_ptsz_parameter(n_l_n5k,int,103)
 
 class_sz_ptsz_parameter(M1SZ_L_sat, double, 1.e9);
 class_sz_ptsz_parameter(M2SZ_L_sat, double, 1.e17);
