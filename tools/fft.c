@@ -1,3 +1,5 @@
+#include  "common.h"
+#include <gsl/gsl_math.h>
 # include <stdlib.h>
 # include <stdio.h>
 # include <time.h>
@@ -7,9 +9,9 @@
 #include <gsl/gsl_sf_gamma.h>
 # include <fftw3.h>
 
-#ifndef M_PI
-    #define M_PI 3.14159265358979323846
-#endif
+// #ifndef M_PI
+//     #define M_PI 3.14159265358979323846
+// #endif
 
 
 // #include "fft.h"
@@ -732,11 +734,14 @@ static void lngamma_4(double x, double y, double* lnr, double* arg) {
 static double goodkr(int N, double mu, double q, double L, double kr) {
     double xp = (mu+1+q)/2;
     double xm = (mu+1-q)/2;
-    double y = M_PI*N/(2*L);
+    // double y = M_PI*N/(2*L);
+    double y = _PI_*N/(2*L);
+
     double lnr, argm, argp;
     lngamma_4(xp, y, &lnr, &argp);
     lngamma_4(xm, y, &lnr, &argm);
-    double arg = log(2/kr) * N/L + (argp + argm)/M_PI;
+    // double arg = log(2/kr) * N/L + (argp + argm)/M_PI;
+    double arg = log(2/kr) * N/L + (argp + argm)/_PI_;
     double iarg = round(arg);
     if(arg != iarg)
         kr *= exp((arg - iarg)*L/N);
@@ -744,7 +749,8 @@ static double goodkr(int N, double mu, double q, double L, double kr) {
 }
 
 void compute_u_coefficients(int N, double mu, double q, double L, double kcrc, double complex u[]) {
-    double y = M_PI/L;
+    // double y = M_PI/L;
+    double y = _PI_/L;
     double k0r0 = kcrc * exp(-L);
     double t = -2*y*log(k0r0/2);
     int m;
@@ -788,7 +794,7 @@ void fht(int N, const double r[], const double complex a[], double k[], double c
     }
 
 
-    int id = omp_get_thread_num();
+    // int id = omp_get_thread_num();
     // omp_set_lock(lock); //Only a single thread writes
     // printf("My Thread num in fht is: %d\n", id);
     /* Compute the convolution b = a*u using FFTs */
@@ -849,7 +855,8 @@ void fftlog_ComputeXiLM(int l, int m, int N, const double k[], const double pk[]
         a[i] = pow(k[i], 1 ) * pk[i]; // m = 1 in our case
     fht(N, k, a, r, b, 0, 0, 1, 1, NULL, ptsz);
     for(i = 0; i < N; i++)
-        xi[i] = creal(pow(2*M_PI*r[i], -1) * b[i]);
+        // xi[i] = creal(pow(2*M_PI*r[i], -1) * b[i]);
+        xi[i] = creal(pow(2*_PI_*r[i], -1) * b[i]);
         // xi[i] = creal(pow(2*M_PI*r[i], -1.5) * b[i]);
     //
     free(a);
