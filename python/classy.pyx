@@ -2084,6 +2084,14 @@ cdef class Class:
         #print("Check your settings and try again?")
         #r = 0.
         return r
+    def get_dlnsigma_dlnR_at_z_and_m(self, z, m):
+        #try:
+        r = get_dlnsigma_dlnR_at_z_and_m(z,m,&self.tsz,&self.ba)
+        #except:
+        #print("You are asking for a quantity that hasn't been computed properly.")
+        #print("Check your settings and try again?")
+        #r = 0.
+        return r
 
     def get_dcib0dz_at_z_and_nu(self,z,nu):
         r = get_dcib0dz_at_z_and_nu(z,nu,&self.tsz)

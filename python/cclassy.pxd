@@ -710,6 +710,7 @@ cdef extern from "class.h":
     double get_dndlnM_at_z_and_M(double z_asked,
                                  double m_asked,
                                  void * tsz)
+    double get_dlnsigma_dlnR_at_z_and_m(double z_asked, double m_asked, void * tsz,void * ba)
     double gnu_tsz_of_nu_in_ghz(double nu_in_ghz,double Tcmb)
     double get_dcib0dz_at_z_and_nu(double z_asked,
                                    double nu_asked,
