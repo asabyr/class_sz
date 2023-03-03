@@ -1759,7 +1759,8 @@ int input_read_parameters(
       //Redshift limits for the integration
       class_read_double("z_min",ptsz->z1SZ);
       class_read_double("z_max",ptsz->z2SZ);
-
+      ptsz->z1SZ_dndlnM = ptsz->z1SZ;
+      ptsz->z2SZ_dndlnM = ptsz->z2SZ;
 
 
       class_read_double("redshift_epsrel",ptsz->redshift_epsrel);
@@ -1785,8 +1786,7 @@ int input_read_parameters(
       class_read_double("M_max",ptsz->M2SZ);
       ptsz->M1SZ_dndlnM = ptsz->M1SZ;
       ptsz->M2SZ_dndlnM = ptsz->M2SZ;
-      ptsz->z1SZ_dndlnM = ptsz->z1SZ;
-      ptsz->z2SZ_dndlnM = ptsz->z2SZ;
+
 
       ptsz->M_min_ng_bar = ptsz->M1SZ;
       ptsz->M_max_ng_bar = ptsz->M2SZ;
@@ -1857,6 +1857,8 @@ int input_read_parameters(
       class_read_int("mass_range",pcsz->mass_range);
 
 
+      class_read_int("use_maniyar_cib_model",ptsz->use_maniyar_cib_model);
+
       class_read_int("y_m_relation",ptsz->y_m_relation);
       class_read_double("ystar",pcsz->ystar);
       class_read_double("alpha",pcsz->alpha);
@@ -1868,6 +1870,12 @@ int input_read_parameters(
       class_read_double("beta_ym",ptsz->beta_ym);
       class_read_double("sigmaM_ym",ptsz->sigmaM_ym);
 
+
+      // class_read_double("ystar_nika2",ptsz->ystar_nika2);
+      // class_read_double("alpha_nika2",ptsz->alpha_nika2);
+      // class_read_double("beta_nika2",ptsz->beta_nika2);
+      // class_read_double("sigmaM_nika2",ptsz->sigmaM_nika2);
+
       class_read_double("alpha_thm",ptsz->alpha_theta);
 
       class_read_double("A_ym",ptsz->A_ym);
@@ -1877,6 +1885,8 @@ int input_read_parameters(
 
       //For the computation of sigma2
       class_read_int("ndim_masses",ptsz->ndimSZ);
+
+      class_read_int("use_class_sz_fast_mode",ptsz->use_class_sz_fast_mode);
 
       class_read_double("delta_cSZ",ptsz->delta_cSZ);
 
@@ -2091,6 +2101,7 @@ int input_read_parameters(
         pnl->has_pk_cb = _TRUE_;
         pnl->has_pk_m = _TRUE_;
         ptsz->need_hmf = 1;
+        // ptsz->has_completeness_for_ps_SZ = 1;
       }
       if ((strstr(string1,"mean_y") != NULL) ) {
         ptsz->has_mean_y =_TRUE_;
@@ -2142,6 +2153,42 @@ int input_read_parameters(
         pnl->has_pk_m = _TRUE_;
         ptsz->need_hmf = 1;
       }
+
+      if ((strstr(string1,"pk_b_at_z_2h") != NULL) ) {
+        ptsz->has_pk_b_at_z_2h =_TRUE_;
+        ppt->has_density_transfers=_TRUE_;
+        ppt->has_pk_matter = _TRUE_;
+        ppt->has_perturbations = _TRUE_;
+        pnl->has_pk_cb = _TRUE_;
+        pnl->has_pk_m = _TRUE_;
+        ptsz->need_hmf = 1;
+      }
+
+
+      if ((strstr(string1,"pressure_profile_2h") != NULL) ) {
+        ptsz->has_gas_pressure_profile_2h =_TRUE_;
+        ppt->has_density_transfers=_TRUE_;
+        ppt->has_pk_matter = _TRUE_;
+        ppt->has_perturbations = _TRUE_;
+        pnl->has_pk_cb = _TRUE_;
+        pnl->has_pk_m = _TRUE_;
+        ptsz->need_hmf = 1;
+        // printf("ok %d\n",ptsz->has_gas_pressure_profile_2h);
+        // exit(0);
+      }
+
+      if ((strstr(string1,"gas_density_profile_2h") != NULL) ) {
+        ptsz->has_gas_density_profile_2h =_TRUE_;
+        ppt->has_density_transfers=_TRUE_;
+        ppt->has_pk_matter = _TRUE_;
+        ppt->has_perturbations = _TRUE_;
+        pnl->has_pk_cb = _TRUE_;
+        pnl->has_pk_m = _TRUE_;
+        ptsz->need_hmf = 1;
+        // printf("ok %d\n",ptsz->has_gas_density_profile_2h);
+        // exit(0);
+      }
+
 
       if ((strstr(string1,"pk_em_at_z_1h") != NULL) ) {
         ptsz->has_pk_em_at_z_1h =_TRUE_;
@@ -2604,15 +2651,6 @@ int input_read_parameters(
       }
 
 
-      if ((strstr(string1,"tSZ_tSZ_tSZ_1h") != NULL) ) {
-        ptsz->has_tSZ_tSZ_tSZ_1halo =_TRUE_;
-        ppt->has_density_transfers=_TRUE_;
-        ppt->has_pk_matter = _TRUE_;
-        ppt->has_perturbations = _TRUE_;
-        pnl->has_pk_cb = _TRUE_;
-        pnl->has_pk_m = _TRUE_;
-        ptsz->need_hmf = 1;
-      }
 
       if ((strstr(string1,"kSZ_kSZ_1h") != NULL) ) {
         ptsz->has_kSZ_kSZ_1h =_TRUE_;
@@ -2666,6 +2704,55 @@ int input_read_parameters(
         ptsz->has_vrms2 = _TRUE_;
       }
 
+      if ((strstr(string1,"tSZ_tSZ_tSZ_1h") != NULL) ) {
+        ptsz->has_tSZ_tSZ_tSZ_1halo =_TRUE_;
+        ppt->has_density_transfers=_TRUE_;
+        ppt->has_pk_matter = _TRUE_;
+        ppt->has_perturbations = _TRUE_;
+        pnl->has_pk_cb = _TRUE_;
+        pnl->has_pk_m = _TRUE_;
+        ptsz->need_hmf = 1;
+      }
+      if ((strstr(string1,"tSZ_tSZ_tSZ_2h") != NULL) ) {
+        ptsz->has_tSZ_tSZ_tSZ_2h =_TRUE_;
+        ppt->has_density_transfers=_TRUE_;
+        ppt->has_pk_matter = _TRUE_;
+        ppt->has_perturbations = _TRUE_;
+        pnl->has_pk_cb = _TRUE_;
+        pnl->has_pk_m = _TRUE_;
+        ptsz->need_hmf = 1;
+      }
+      if ((strstr(string1,"tSZ_tSZ_tSZ_3h") != NULL) ) {
+        ptsz->has_tSZ_tSZ_tSZ_3h =_TRUE_;
+        ppt->has_density_transfers=_TRUE_;
+        ppt->has_pk_matter = _TRUE_;
+        ppt->has_perturbations = _TRUE_;
+        pnl->has_pk_cb = _TRUE_;
+        pnl->has_pk_m = _TRUE_;
+        ptsz->need_hmf = 1;
+      }
+
+      if ((strstr(string1,"galn_galn_1h") != NULL) ) {
+        ptsz->has_ngal_ngal_1h =_TRUE_;
+        ppt->has_density_transfers=_TRUE_;
+        ppt->has_pk_matter = _TRUE_;
+        ppt->has_perturbations = _TRUE_;
+        pnl->has_pk_cb = _TRUE_;
+        pnl->has_pk_m = _TRUE_;
+        ptsz->need_hmf = 1;
+      }
+
+      if ((strstr(string1,"galn_galn_2h") != NULL) ) {
+        ptsz->has_ngal_ngal_2h =_TRUE_;
+        ppt->has_density_transfers=_TRUE_;
+        ppt->has_pk_matter = _TRUE_;
+        ppt->has_perturbations = _TRUE_;
+        pnl->has_pk_cb = _TRUE_;
+        pnl->has_pk_m = _TRUE_;
+        ptsz->need_hmf = 1;
+      }
+
+
       if ((strstr(string1,"cib_cib_1h") != NULL) ) {
         ptsz->has_cib_cib_1h =_TRUE_;
         ppt->has_density_transfers=_TRUE_;
@@ -2684,6 +2771,16 @@ int input_read_parameters(
         pnl->has_pk_m = _TRUE_;
         ptsz->need_hmf = 1;
       }
+      if ((strstr(string1,"cib_shotnoise") != NULL) ) {
+        ptsz->has_cib_shotnoise =_TRUE_;
+        ppt->has_density_transfers=_TRUE_;
+        ppt->has_pk_matter = _TRUE_;
+        ppt->has_perturbations = _TRUE_;
+        pnl->has_pk_cb = _TRUE_;
+        pnl->has_pk_m = _TRUE_;
+        ptsz->need_hmf = 1;
+      }
+
       if ((strstr(string1,"dcib0dz") != NULL) ) {
         ptsz->has_dcib0dz =_TRUE_;
         ppt->has_density_transfers=_TRUE_;
@@ -2757,6 +2854,20 @@ int input_read_parameters(
         // ptsz->need_hmf = 1;
       }
 
+      if ((strstr(string1,"galn_galn_hf") != NULL) ) {
+        ptsz->has_ngal_ngal_hf =_TRUE_;
+        ppt->has_density_transfers=_TRUE_;
+        ppt->has_pk_matter = _TRUE_;
+        ppt->has_perturbations = _TRUE_;
+        pnl->has_pk_cb = _TRUE_;
+        pnl->has_pk_m = _TRUE_;
+
+        // class_read_double("effective_galaxy_bias",ptsz->effective_galaxy_bias);
+
+      }
+
+
+
         class_read_double("effective_galaxy_bias",ptsz->effective_galaxy_bias);
         class_read_double("use_bg_eff_in_ksz2g_eff",ptsz->use_bg_eff_in_ksz2g_eff);
 
@@ -2789,6 +2900,37 @@ int input_read_parameters(
         }
       }
 
+
+
+      if ((strstr(string1,"galn_lens_1h") != NULL) ) {
+        ptsz->has_ngal_lens_1h =_TRUE_;
+        ppt->has_density_transfers=_TRUE_;
+        ppt->has_pk_matter = _TRUE_;
+        ppt->has_perturbations = _TRUE_;
+        pnl->has_pk_cb = _TRUE_;
+        pnl->has_pk_m = _TRUE_;
+        ptsz->need_hmf = 1;
+      }
+
+      if ((strstr(string1,"galn_lens_2h") != NULL) ) {
+        ptsz->has_ngal_lens_2h =_TRUE_;
+        ppt->has_density_transfers=_TRUE_;
+        ppt->has_pk_matter = _TRUE_;
+        ppt->has_perturbations = _TRUE_;
+        pnl->has_pk_cb = _TRUE_;
+        pnl->has_pk_m = _TRUE_;
+        ptsz->need_hmf = 1;
+      }
+
+      if ((strstr(string1,"galn_lens_hf") != NULL) ) {
+        ptsz->has_ngal_lens_hf =_TRUE_;
+        ppt->has_density_transfers=_TRUE_;
+        ppt->has_pk_matter = _TRUE_;
+        ppt->has_perturbations = _TRUE_;
+        pnl->has_pk_cb = _TRUE_;
+        pnl->has_pk_m = _TRUE_;
+        // ptsz->need_hmf = 1;
+      }
 
 
       if ((strstr(string1,"gal_lens_1h") != NULL) ) {
@@ -3190,6 +3332,37 @@ int input_read_parameters(
 
       }
 
+      if ((strstr(string1,"sz_cluster_counts_fft") != NULL) ) {
+        // printf("counts\n");
+        ptsz->has_sz_counts =_TRUE_;
+        ptsz->has_sz_counts_fft =_TRUE_;
+        ppt->has_density_transfers=_TRUE_;
+        ppt->has_pk_matter = _TRUE_;
+        ppt->has_perturbations = _TRUE_;
+        pnl->has_pk_cb = _TRUE_;
+        pnl->has_pk_m = _TRUE_;
+        ptsz->need_hmf = 1;
+        ptsz->has_500c = 1;
+
+      }
+
+
+      if ((strstr(string1,"sz_unbinned_cluster_counts") != NULL) ) {
+        // printf("counts\n");
+        ptsz->has_sz_counts =_TRUE_;
+        ptsz->has_sz_rates =_TRUE_;
+        ptsz->has_hmf =_TRUE_;
+        ppt->has_density_transfers=_TRUE_;
+        ppt->has_pk_matter = _TRUE_;
+        ppt->has_perturbations = _TRUE_;
+        pnl->has_pk_cb = _TRUE_;
+        pnl->has_pk_m = _TRUE_;
+        ptsz->need_hmf = 1;
+        ptsz->has_500c = 1;
+        // ptsz->has_completeness_for_ps_SZ = 1;
+
+      }
+
       if ((strstr(string1,"dndlnM") != NULL) ) {
         ptsz->has_dndlnM =_TRUE_;
         //ptsz->has_sz_counts =_TRUE_;
@@ -3330,6 +3503,7 @@ int input_read_parameters(
     class_read_int("cib_frequency_list_num",ptsz->cib_frequency_list_num);
     if (ptsz->has_cib_cib_1h
       + ptsz->has_cib_cib_2h
+      + ptsz->has_cib_shotnoise
       + ptsz->has_tSZ_cib_1h
       + ptsz->has_tSZ_cib_2h
       + ptsz->has_gal_cib_1h
@@ -3338,14 +3512,88 @@ int input_read_parameters(
       + ptsz->has_lens_cib_2h
       != _FALSE_){
     class_read_list_of_doubles("cib_frequency_list_in_GHz",ptsz->cib_frequency_list,ptsz->cib_frequency_list_num);
-
   }
+
+
     class_read_int("has_cib_flux_cut",ptsz->has_cib_flux_cut);
     if (ptsz->has_cib_flux_cut != _FALSE_){
       class_read_list_of_doubles("cib_Snu_cutoff_list [mJy]",ptsz->cib_Snu_cutoff_list_in_mJy,ptsz->cib_frequency_list_num);
     }
 
+    class_read_int("galaxy_samples_list_num",ptsz->galaxy_samples_list_num);
+    if ((ptsz->has_ngal_ngal_1h
+      +  ptsz->has_ngal_ngal_2h
+      +  ptsz->has_ngal_ngal_hf
+      +  ptsz->has_ngal_lens_1h
+      +  ptsz->has_ngal_lens_2h
+      +  ptsz->has_ngal_lens_hf
+    )
+      != _FALSE_){
+    class_read_list_of_integers("galaxy_samples_list",ptsz->galaxy_samples_list,ptsz->galaxy_samples_list_num);
 
+    if (ptsz->has_ngal_ngal_hf
+       +ptsz->has_ngal_lens_hf){
+    class_alloc(ptsz->effective_galaxy_bias_ngal,sizeof(double *)*ptsz->galaxy_samples_list_num,ptsz->error_message);
+    int index_g;
+    // printf("reading effective bias.\n");
+
+    for (index_g = 0;index_g<ptsz->galaxy_samples_list_num;index_g++){
+      // printf("reading effective bias %d.\n",index_g);
+      char input_param_name[_ARGUMENT_LENGTH_MAX_];
+      sprintf(input_param_name,"%s%d","effective_galaxy_bias_ngal_",index_g);
+      class_read_double(input_param_name,ptsz->effective_galaxy_bias_ngal[index_g]);
+      // printf("reading effective bias %.3e.\n",ptsz->effective_galaxy_bias_ngal[index_g]);
+      // if (ptsz->sz_verbose>1)
+        // printf("reading effective bias b[%d] = %.3e\n",index_g,ptsz->effective_galaxy_bias_ngal[index_g]);
+
+        }
+    // exit(0);
+    }
+
+    if (ptsz->has_ngal_ngal_1h
+      + ptsz->has_ngal_ngal_2h
+      + ptsz->has_ngal_lens_1h
+      + ptsz->has_ngal_lens_2h
+    ){
+
+    class_alloc(ptsz->sigma_log10M_HOD_ngal,sizeof(double *)*ptsz->galaxy_samples_list_num,ptsz->error_message);
+    class_alloc(ptsz->alpha_s_HOD_ngal,sizeof(double *)*ptsz->galaxy_samples_list_num,ptsz->error_message);
+    class_alloc(ptsz->M1_prime_HOD_ngal,sizeof(double *)*ptsz->galaxy_samples_list_num,ptsz->error_message);
+    class_alloc(ptsz->M_min_HOD_ngal,sizeof(double *)*ptsz->galaxy_samples_list_num,ptsz->error_message);
+    class_alloc(ptsz->M0_HOD_ngal,sizeof(double *)*ptsz->galaxy_samples_list_num,ptsz->error_message);
+    class_alloc(ptsz->x_out_truncated_nfw_profile_satellite_galaxies_ngal,sizeof(double *)*ptsz->galaxy_samples_list_num,ptsz->error_message);
+    class_alloc(ptsz->f_cen_HOD_ngal,sizeof(double *)*ptsz->galaxy_samples_list_num,ptsz->error_message);
+
+    int index_g;
+    for (index_g = 0;index_g<ptsz->galaxy_samples_list_num;index_g++){
+        char input_param_name[_ARGUMENT_LENGTH_MAX_];
+        ptsz->sigma_log10M_HOD_ngal[index_g] = 1.;
+        ptsz->alpha_s_HOD_ngal[index_g] = 1.;
+        ptsz->M1_prime_HOD_ngal[index_g] = 1.;
+        ptsz->M_min_HOD_ngal[index_g] = 1e11;
+        ptsz->M0_HOD_ngal[index_g] = 1e11;
+        ptsz->x_out_truncated_nfw_profile_satellite_galaxies_ngal[index_g] = 1.;
+        ptsz->f_cen_HOD_ngal[index_g] = 1.;
+        sprintf(input_param_name,"%s%d","sigma_log10M_HOD_ngal_",index_g);
+        class_read_double(input_param_name,ptsz->sigma_log10M_HOD_ngal[index_g]);
+        sprintf(input_param_name,"%s%d","alpha_s_HOD_ngal_",index_g);
+        class_read_double(input_param_name,ptsz->alpha_s_HOD_ngal[index_g]);
+        sprintf(input_param_name,"%s%d","M1_prime_HOD_ngal_",index_g);
+        class_read_double(input_param_name,ptsz->M1_prime_HOD_ngal[index_g]);
+        sprintf(input_param_name,"%s%d","M_min_HOD_ngal_",index_g);
+        class_read_double(input_param_name,ptsz->M_min_HOD_ngal[index_g]);
+        sprintf(input_param_name,"%s%d","M0_HOD_ngal_",index_g);
+        class_read_double(input_param_name,ptsz->M0_HOD_ngal[index_g]);
+        sprintf(input_param_name,"%s%d","x_out_truncated_nfw_profile_satellite_galaxies_ngal_",index_g);
+        class_read_double(input_param_name,ptsz->x_out_truncated_nfw_profile_satellite_galaxies_ngal[index_g]);
+        sprintf(input_param_name,"%s%d","f_cen_HOD_ngal_",index_g);
+        class_read_double(input_param_name,ptsz->f_cen_HOD_ngal[index_g]);
+
+
+          }
+      }
+
+  }
 
 
      // Table 1  of MM20
@@ -3354,18 +3602,29 @@ int input_read_parameters(
      class_read_double("Emissivity index of sed",ptsz->beta_cib); // emissivity index of sed
      class_read_double("Power law index of SED at high frequency",ptsz->gamma_cib); // Power law index of SED at high frequency
      class_read_double("Redshift evolution of L − M normalisation",ptsz->delta_cib); // Redshift evolution of L − M normalisation
-     class_read_double("Most efficient halo mass in Msun",ptsz->m_eff_cib); // Most efficient halo mass in Msun/h
+     class_read_double("Most efficient halo mass in Msun",ptsz->m_eff_cib); // Most efficient halo mass in Msun
      class_read_double("Normalisation of L − M relation in [Jy MPc2/Msun]",ptsz->L0_cib); // Normalisation of L − M relation in [Jy MPc2/Msun]
      class_read_double("Size of of halo masses sourcing CIB emission",ptsz->sigma2_LM_cib); // Size of of halo masses sourcing CIB emission
      class_read_double("z_obs (CIB)",ptsz->z_obs_cib);
      class_read_double("z_plateau_cib",ptsz->z_plateau_cib);
      class_read_double("M_min_subhalo_in_Msun",ptsz->M_min_subhalo_in_Msun);
 
+     class_read_double("maniyar_cib_etamax",ptsz->maniyar_cib_etamax);
+     class_read_double("maniyar_cib_zc",ptsz->maniyar_cib_zc);
+     class_read_double("maniyar_cib_tau",ptsz->maniyar_cib_tau);
+     class_read_double("maniyar_cib_fsub",ptsz->maniyar_cib_fsub);
+
      class_read_int("use_redshift_dependent_M_min",ptsz->use_redshift_dependent_M_min);
      class_read_int("use_nc_1_for_all_halos_cib_HOD",ptsz->use_nc_1_for_all_halos_cib_HOD);
 
+     class_read_int("cib_nu0_norm",ptsz->cib_nu0_norm);
      class_read_int("use scale dependent bias (from non Gaussianity)",ptsz->has_ng_in_bh);
      class_read_double("fNL",ptsz->fNL);
+
+     // FMcC edit: read in p_fNL parameter
+     // class_read_double("p_fNL",ptsz->p_fNL);
+     // end FMcC edit
+
      if(ptsz->has_ng_in_bh){
        ppt->has_density_transfers=_TRUE_;
        ppt->has_perturbations = _TRUE_;
@@ -3621,6 +3880,17 @@ int input_read_parameters(
        class_read_double("alpha_z_xc_B12",ptsz->alpha_z_xc_B12);// = 0.731;
        class_read_double("alpha_z_beta_B12",ptsz->alpha_z_beta_B12);// = 0.415;
 
+       class_read_double("cp_B12",ptsz->c_B12);// = 1.e14;
+       class_read_double("cp_B16",ptsz->c_B16);// = 1.e14;
+
+       class_read_double("mcut_B12",ptsz->mcut_B12);// = 1.e14;
+       class_read_double("alphap_m_P0_B12",ptsz->alphap_m_P0_B12);// = 0.154;
+       class_read_double("alphap_m_xc_B12",ptsz->alphap_m_xc_B12);// = -0.00865;
+       class_read_double("alphap_m_beta_B12",ptsz->alphap_m_beta_B12);// = 0.0393;
+
+       class_read_double("alpha_c_P0_B12",ptsz->alpha_c_P0_B12);// = 0.;
+       class_read_double("alpha_c_xc_B12",ptsz->alpha_c_xc_B12);// = 0.;
+       class_read_double("alpha_c_beta_B12",ptsz->alpha_c_beta_B12);// = 0.;
      }
 class_read_int("truncate_wrt_rvir",ptsz->truncate_wrt_rvir);
 class_read_int("use_websky_m200m_to_m200c_conversion",ptsz->use_websky_m200m_to_m200c_conversion);
@@ -3699,6 +3969,7 @@ class_read_int("no_tt_noise_in_kSZ2X_cov",ptsz->no_tt_noise_in_kSZ2X_cov);
         ptsz->delta_def_electron_density = 2;
         ptsz->delta_def_electron_pressure = 2;
       }
+      // m200c is the default
       // if (ptsz->integrate_wrt_m200c == 1){
       //   ptsz->integrate_wrt_mvir = 0;
       //   ptsz->integrate_wrt_m200m = 0;
@@ -3855,6 +4126,16 @@ class_read_int("no_tt_noise_in_kSZ2X_cov",ptsz->no_tt_noise_in_kSZ2X_cov);
             ptsz->alpha_z_alpha = 0.19;
             ptsz->alpha_z_beta = -0.025;
             ptsz->xc_B16 = 0.5;
+
+            ptsz->c_B16 = 0.;
+	          ptsz->mcut = 1.e14;
+            ptsz->alphap_m_rho0 = 0.29;
+            ptsz->alphap_m_alpha = -0.03;
+            ptsz->alphap_m_beta = 0.04;
+
+            ptsz->alpha_c_rho0 = 0.;
+            ptsz->alpha_c_alpha = 0.;
+            ptsz->alpha_c_beta = 0.;
         }
         else  if ((strstr(string1,"shock") != NULL)){
           ptsz->tau_profile_mode=1;
@@ -3871,6 +4152,16 @@ class_read_int("no_tt_noise_in_kSZ2X_cov",ptsz->no_tt_noise_in_kSZ2X_cov);
             ptsz->alpha_z_alpha = 0.27;
             ptsz->alpha_z_beta = 0.037;
             ptsz->xc_B16 = 0.5;
+
+            ptsz->c_B16 = 0.;
+	          ptsz->mcut = 1.e14;
+            ptsz->alphap_m_rho0 = 0.09;
+            ptsz->alphap_m_alpha = -0.017;
+            ptsz->alphap_m_beta = 0.005;
+
+            ptsz->alpha_c_rho0 = 0.;
+            ptsz->alpha_c_alpha = 0.;
+            ptsz->alpha_c_beta = 0.;
         }
         else if ((strstr(string1,"custom") != NULL)){
           ptsz->tau_profile_mode=2;
@@ -3884,7 +4175,20 @@ class_read_int("no_tt_noise_in_kSZ2X_cov",ptsz->no_tt_noise_in_kSZ2X_cov);
 
           class_read_double("alpha_z_rho0",ptsz->alpha_z_rho0);
           class_read_double("alpha_z_alpha",ptsz->alpha_z_alpha);
-          class_read_double("alpha_z_bet",ptsz->alpha_z_beta);
+          class_read_double("alpha_z_beta",ptsz->alpha_z_beta);
+
+
+	        // B.H.
+          class_read_double("cp_B16",ptsz->c_B16);
+          class_read_double("mcut",ptsz->mcut);
+          class_read_double("alphap_m_rho0",ptsz->alphap_m_rho0);
+          class_read_double("alphap_m_alpha",ptsz->alphap_m_alpha);
+          class_read_double("alphap_m_beta",ptsz->alphap_m_beta);
+
+          class_read_double("alpha_c_rho0",ptsz->alpha_c_rho0);
+          class_read_double("alpha_c_alpha",ptsz->alpha_c_alpha);
+          class_read_double("alpha_c_beta",ptsz->alpha_c_beta);
+
           class_read_double("gamma_B16",ptsz->gamma_B16);
           class_read_double("xc_B16",ptsz->xc_B16);
         }
@@ -5019,7 +5323,7 @@ class_read_int("no_tt_noise_in_kSZ2X_cov",ptsz->no_tt_noise_in_kSZ2X_cov);
       ppt->z_max_pk = param1;
     }
     else {
-      ppt->z_max_pk = 0.;
+      // ppt->z_max_pk = 0.; //class_sz modif
 
       if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)) {
         for (i=0; i<pop->z_pk_num; i++) {
@@ -5050,6 +5354,8 @@ class_read_int("no_tt_noise_in_kSZ2X_cov",ptsz->no_tt_noise_in_kSZ2X_cov);
 
     if (ptsz->has_sz_ps
       + ptsz->has_sz_counts
+      + ptsz->has_sz_counts_fft
+      + ptsz->has_sz_rates
       + ptsz->has_hmf
       + ptsz->has_pk_at_z_1h
       + ptsz->has_pk_at_z_2h
@@ -5057,6 +5363,9 @@ class_read_int("no_tt_noise_in_kSZ2X_cov",ptsz->no_tt_noise_in_kSZ2X_cov);
       + ptsz->has_pk_gg_at_z_2h
       + ptsz->has_pk_bb_at_z_1h
       + ptsz->has_pk_bb_at_z_2h
+      + ptsz->has_pk_b_at_z_2h
+      + ptsz->has_gas_pressure_profile_2h
+      + ptsz->has_gas_density_profile_2h
       + ptsz->has_pk_em_at_z_1h
       + ptsz->has_pk_em_at_z_2h
       + ptsz->has_pk_HI_at_z_1h
@@ -5070,6 +5379,7 @@ class_read_int("no_tt_noise_in_kSZ2X_cov",ptsz->no_tt_noise_in_kSZ2X_cov);
       + ptsz->has_bk_at_z_hf
       + ptsz->has_mean_y
       + ptsz->has_cib_monopole
+      + ptsz->has_cib_shotnoise
       + ptsz->has_dcib0dz
       + ptsz->has_dydz
       + ptsz->has_sz_2halo
@@ -5080,6 +5390,8 @@ class_read_int("no_tt_noise_in_kSZ2X_cov",ptsz->no_tt_noise_in_kSZ2X_cov);
       + ptsz->has_sz_cov_N_N
       + ptsz->has_sz_cov_N_N_hsv
       + ptsz->has_tSZ_tSZ_tSZ_1halo
+      + ptsz->has_tSZ_tSZ_tSZ_2h
+      + ptsz->has_tSZ_tSZ_tSZ_3h
       + ptsz->has_kSZ_kSZ_1h
       + ptsz->has_kSZ_kSZ_2h
       + ptsz->has_kSZ_kSZ_tSZ_1h
@@ -5114,6 +5426,12 @@ class_read_int("no_tt_noise_in_kSZ2X_cov",ptsz->no_tt_noise_in_kSZ2X_cov);
       + ptsz->has_lens_cib_1h
       + ptsz->has_lens_cib_2h
       + ptsz->has_cib_cib_1h
+      + ptsz->has_ngal_ngal_1h
+      + ptsz->has_ngal_ngal_2h
+      + ptsz->has_ngal_ngal_hf
+      + ptsz->has_ngal_lens_1h
+      + ptsz->has_ngal_lens_2h
+      + ptsz->has_ngal_lens_hf
       + ptsz->has_cib_cib_2h
       + ptsz->has_gal_gal_1h
       + ptsz->has_gal_gal_2h
@@ -5190,7 +5508,7 @@ class_read_int("no_tt_noise_in_kSZ2X_cov",ptsz->no_tt_noise_in_kSZ2X_cov);
   /** (f) parameter related to the non-linear spectra computation */
 
   class_call(parser_read_string(pfc,
-                                "non linear",
+                                "non_linear",
                                 &(string1),
                                 &(flag1),
                                 errmsg),
@@ -5400,6 +5718,7 @@ class_read_int("no_tt_noise_in_kSZ2X_cov",ptsz->no_tt_noise_in_kSZ2X_cov);
   // class_read_string("sBBN_file",ppr->sBBN_file);
   class_read_string("ksz_filter_file",ptsz->ksz_filter_file);
   class_read_string("full_path_to_dndz_gal",ptsz->full_path_to_dndz_gal);
+  class_read_string("full_path_and_prefix_to_dndz_ngal",ptsz->full_path_and_prefix_to_dndz_ngal);
   class_read_string("full_path_to_redshift_dependent_M_min",ptsz->full_path_to_redshift_dependent_M_min);
   class_read_string("full_path_to_source_dndz_gal",ptsz->full_path_to_source_dndz_gal);
   // printf("-> File Name: %s\n",ptsz->ksz_filter_file);
@@ -5875,9 +6194,11 @@ int input_default_params(
   ptsz->M1_prime_HOD_factor = 15.;
   ptsz->M_min_HOD_satellite_mass_factor_unwise = 0.1;
 
-  ptsz->hm_consistency = 1; //0: nothing 1: counter terms 2: alpha(z)
+  ptsz->hm_consistency = 0; //0: nothing 1: counter terms 2: alpha(z)
   ptsz->check_consistency_conditions = 0;
   ptsz->damping_1h_term = 1;
+
+  ptsz->use_class_sz_fast_mode = 0;
 
   ptsz->N_kSZ2_gal_multipole_grid = 20;
 
@@ -5986,6 +6307,8 @@ int input_default_params(
   ptsz->x_size_for_pp = 2000;
 
   ptsz->f_sky = 1.; // full sky
+  ptsz->fsky_from_skyfracs = 1.;
+  ptsz->szunbinned_loglike = -1000.;
   ptsz->Omega_survey = 4.*_PI_*ptsz->f_sky;
 
   // integration_method_pressure_profile
@@ -6029,6 +6352,18 @@ int input_default_params(
    ptsz->alpha_z_xc_B12 = 0.731;
    ptsz->alpha_z_beta_B12 = 0.415;
 
+   ptsz->c_B12 = 0.;
+   ptsz->mcut_B12 = 1.e14;
+   ptsz->alphap_m_P0_B12 = 0.154;
+   ptsz->alphap_m_xc_B12 = -0.00865;
+   ptsz->alphap_m_beta_B12 = 0.0393;
+
+   ptsz->alpha_c_P0_B12 = 0.;
+   ptsz->alpha_c_xc_B12 = 0.;
+   ptsz->alpha_c_beta_B12 = 0.;
+
+
+
    ptsz->use_websky_m200m_to_m200c_conversion = 0;
 
 
@@ -6049,6 +6384,15 @@ int input_default_params(
    ptsz->xc_B16 = 0.5;
 
 
+   ptsz->c_B16 = 0.;
+	 ptsz->mcut = 1.e14;
+   ptsz->alphap_m_rho0 = 0.29;
+   ptsz->alphap_m_alpha = -0.03;
+   ptsz->alphap_m_beta = 0.04;
+
+   ptsz->alpha_c_rho0 = 0.;
+   ptsz->alpha_c_alpha = 0.;
+   ptsz->alpha_c_beta = 0.;
   //units
   ptsz->nu_y_dist_GHz = 150.;
   ptsz->exponent_unit = 2; // 2: dimensionless, 0:  'muK' (micro Kelvin)
@@ -6069,8 +6413,12 @@ int input_default_params(
   ptsz->z_plateau_cib = 1e100; // see 5.2.1 of https://arxiv.org/pdf/1208.5049.pdf
   ptsz->M_min_subhalo_in_Msun = 0;
   ptsz->use_redshift_dependent_M_min = 0;
+  ptsz->cib_nu0_norm = 1;
   ptsz->use_nc_1_for_all_halos_cib_HOD = 0;
-
+  ptsz->maniyar_cib_etamax = 0.4028353504978569; // see https://github.com/abhimaniyar/halomodel_cib_tsz_cibxtsz/blob/master/input_var.py
+  ptsz->maniyar_cib_zc = 1.5; // see https://github.com/abhimaniyar/halomodel_cib_tsz_cibxtsz/blob/master/input_var.py
+  ptsz->maniyar_cib_tau = 1.2040244128818796; // see https://github.com/abhimaniyar/halomodel_cib_tsz_cibxtsz/blob/master/input_var.py
+  ptsz->maniyar_cib_fsub = 0.134; // see https://github.com/abhimaniyar/halomodel_cib_tsz_cibxtsz/blob/master/Cell_cib.py
   ptsz->fNL = 0.;
 
   //# Table 1 of https://arxiv.org/pdf/1309.0382.pdf
@@ -6109,6 +6457,9 @@ int input_default_params(
   ptsz->apply_relativistic_correction_to_y_m = 0;
 
   ptsz->y_m_relation = 1; //0: planck, 1: act/so
+
+
+  ptsz->use_maniyar_cib_model = 0;
 
 
   pcsz->ystar = -0.186; //-0.186 ref. value in SZ_plus_priors.ini (cosmomc)
@@ -6150,13 +6501,13 @@ int input_default_params(
   ptsz->delta_cSZ = (3./20.)*pow(12.*_PI_,2./3.);
 
 
-  ptsz->k_per_decade_for_tSZ = 20.; //#default 40
-  ptsz->k_min_for_pk_in_tSZ = 1.e-3; //#default 1.e-3
+  ptsz->k_per_decade_for_tSZ = 50.; //#default 40
+  ptsz->k_min_for_pk_in_tSZ = 1.e-2; //#default 1.e-3
   ptsz->k_max_for_pk_in_tSZ = 1.e1; //#default 5
 
   ptsz->z_for_pk_hm = 1.;
   ptsz->k_min_for_pk_hm = 1e-2;
-  ptsz->k_min_for_pk_hm = 1e1;
+  ptsz->k_max_for_pk_hm = 1e1;
   ptsz->dlnk_for_pk_hm = 0.1;
 
 
@@ -6249,6 +6600,8 @@ int input_default_params(
 
   //ptsz->has_tszspectrum = _FALSE_;
   ptsz->has_sz_counts = _FALSE_;
+  ptsz->has_sz_counts_fft = _FALSE_;
+  ptsz->has_sz_rates = _FALSE_;
   ptsz->has_isw_lens = _FALSE_;
   ptsz->has_isw_tsz = _FALSE_;
   ptsz->has_isw_auto = _FALSE_;
@@ -6282,6 +6635,12 @@ int input_default_params(
   ptsz->has_gal_cib_2h = _FALSE_;
   ptsz->has_lens_cib_1h = _FALSE_;
   ptsz->has_lens_cib_2h = _FALSE_;
+  ptsz->has_ngal_ngal_1h = _FALSE_;
+  ptsz->has_ngal_ngal_2h = _FALSE_;
+  ptsz->has_ngal_ngal_hf = _FALSE_;
+  ptsz->has_ngal_lens_1h = _FALSE_;
+  ptsz->has_ngal_lens_2h = _FALSE_;
+  ptsz->has_ngal_lens_hf = _FALSE_;
   ptsz->has_cib_cib_1h = _FALSE_;
   ptsz->has_cib_cib_2h = _FALSE_;
   ptsz->has_pk_at_z_1h = _FALSE_;
@@ -6290,6 +6649,9 @@ int input_default_params(
   ptsz->has_pk_gg_at_z_2h = _FALSE_;
   ptsz->has_pk_bb_at_z_1h = _FALSE_;
   ptsz->has_pk_bb_at_z_2h = _FALSE_;
+  ptsz->has_pk_b_at_z_2h = _FALSE_;
+  ptsz->has_gas_pressure_profile_2h = _FALSE_;
+  ptsz->has_gas_density_profile_2h = _FALSE_;
   ptsz->has_pk_em_at_z_1h = _FALSE_;
   ptsz->has_pk_em_at_z_2h = _FALSE_;
   ptsz->has_pk_HI_at_z_1h = _FALSE_;
@@ -6333,6 +6695,8 @@ int input_default_params(
   ptsz->has_mean_galaxy_bias = _FALSE_;
   ptsz->has_kSZ_kSZ_lensmag_1halo = _FALSE_;
   ptsz->has_tSZ_tSZ_tSZ_1halo = _FALSE_;
+  ptsz->has_tSZ_tSZ_tSZ_2h = _FALSE_;
+  ptsz->has_tSZ_tSZ_tSZ_3h = _FALSE_;
   ptsz->has_kSZ_kSZ_1h = _FALSE_;
   ptsz->has_kSZ_kSZ_2h = _FALSE_;
   ptsz->has_kSZ_kSZ_tSZ_1h = _FALSE_;
@@ -6346,6 +6710,7 @@ int input_default_params(
   ptsz->has_sz_trispec = _FALSE_;
   ptsz->has_hmf = _FALSE_;
   ptsz->has_cib_monopole = _FALSE_;
+  ptsz->has_cib_shotnoise = _FALSE_;
   ptsz->has_dcib0dz = _FALSE_;
   ptsz->has_dydz = _FALSE_;
   ptsz->has_mean_y = _FALSE_;
@@ -6465,6 +6830,23 @@ int input_default_params(
 
   ptsz->index_md_pk_em_at_z_1h = 91;
   ptsz->index_md_pk_em_at_z_2h = 92;
+  ptsz->index_md_szrates = 93;
+  ptsz->index_md_pk_HI_at_z_2h = 94;
+
+  ptsz->index_md_tSZ_tSZ_tSZ_2h = 95;
+  ptsz->index_md_tSZ_tSZ_tSZ_3h = 96;
+
+  ptsz->index_md_cib_shotnoise= 97;
+
+  ptsz->index_md_ngal_ngal_1h = 98;
+  ptsz->index_md_ngal_ngal_2h = 99;
+  ptsz->index_md_ngal_ngal_hf = 100;
+
+  ptsz->index_md_ngal_lens_1h = 101;
+  ptsz->index_md_ngal_lens_2h = 102;
+  ptsz->index_md_ngal_lens_hf = 103;
+
+  ptsz->index_md_pk_b_at_z_2h = 104;
 
   ptsz->integrate_wrt_mvir = 0;
   ptsz->integrate_wrt_m500c = 0;

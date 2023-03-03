@@ -24,6 +24,14 @@ from scipy import interpolate
 from scipy import integrate
 from scipy.interpolate import InterpolatedUnivariateSpline as _spline
 
+# testing stuffsL: BB
+# import tensorflow as tf
+# import cosmopower
+# path_to_cosmopower_organization = '/Users/boris/Work/CLASS-SZ/SO-SZ/cosmopower-organization'
+# path_to_emulators = path_to_cosmopower_organization + 'lcdm/'
+# from mcfit import P2xi
+import time
+from classy_szfast import classy_szfast
 
 
 
@@ -216,7 +224,7 @@ cdef class Class:
         if(self.allocated != True):
           return
         if "szcount" in self.ncp: #BB: added for class_sz
-            szcount_free(&self.csz)
+            szcounts_free(&self.csz,&self.tsz)
         if "szpowerspectrum" in self.ncp:  #BB: added for class_sz
             szpowerspectrum_free(&self.tsz)
         if "lensing" in self.ncp:
@@ -261,6 +269,9 @@ cdef class Class:
             if "szpowerspectrum" not in level:
               level.append("szpowerspectrum")
         if "szpowerspectrum" in level:  #BB: added for class_sz
+            if "lensing" not in level:
+              level.append("class_sz_cosmo")
+        if "class_sz_cosmo" in level:  #BB: added for class_sz
             if "lensing" not in level:
               level.append("lensing")
         #if "distortions" in level:
@@ -367,6 +378,40 @@ cdef class Class:
         # (And then we successively keep track of the ones we allocate additionally)
         self.allocated = True
 
+        # BB playground for emulators
+        # cszfast = classy_szfast()
+        # print(self._pars)
+        # params_settings = self._pars
+
+
+        # print('calculating cmb')
+        # start = time.time()
+        # cszfast.calculate_cmb(**params_settings)
+        # end = time.time()
+        # print('cmb calculation took:',end-start)
+
+
+        # print('calculating pkl')
+        # start = time.time()
+        # cszfast.calculate_pkl(**params_settings)
+        # end = time.time()
+        # print('pk calculation took:',end-start)
+
+        # print('calculating pknl')
+        # start = time.time()
+        # cszfast.calculate_pknl(**params_settings)
+        # end = time.time()
+        # print('pknl calculation took:',end-start)
+
+        # print('tabulate sigma')
+        # start = time.time()
+        # cszfast.calculate_sigma(**params_settings)
+        # end = time.time()
+        # print('end tabulate sigma:',end-start)
+        # print(cszfast.cszfast_pk_grid_dsigma2_flat[:10],np.shape(cszfast.cszfast_pk_grid_dsigma2_flat))
+        # print(cszfast.cszfast_pk_grid_sigma2_flat[:10],np.shape(cszfast.cszfast_pk_grid_sigma2_flat))
+
+
         # --------------------------------------------------------------------
         # Check the presence for all CLASS modules in the list 'level'. If a
         # module is found in level, executure its "_init" method.
@@ -451,6 +496,12 @@ cdef class Class:
                 raise CosmoComputationError(self.le.error_message)
             self.ncp.add("lensing")
 
+        if "class_sz_cosmo" in level:
+            if class_sz_cosmo_init(&(self.ba), &(self.th), &(self.pt), &(self.nl), &(self.pm),
+            &(self.sp),&(self.le),&(self.tsz),&(self.pr)) == _FAILURE_:
+                self.struct_cleanup()
+                raise CosmoComputationError(self.tsz.error_message)
+            self.ncp.add("class_sz_cosmo")
 
         if "szpowerspectrum" in level:
             if szpowerspectrum_init(&(self.ba), &(self.th), &(self.pt), &(self.nl), &(self.pm),
@@ -473,6 +524,243 @@ cdef class Class:
         # At this point, the cosmological instance contains everything needed. The
         # following functions are only to output the desired numbers
         return
+
+    def compute_class_szfast(self):
+        # Equivalent of writing a parameter file
+        # self._fillparfile()
+
+        self.compute(level=["thermodynamics"])
+        # print(self._pars)
+        params_settings = self._pars
+
+
+        # BB playground for emulators
+        # cszfast = classy_szfast()
+        cszfast = classy_szfast(**params_settings)
+        # print(self._pars)
+        # params_settings = self._pars
+
+
+        # print('calculating cmb')
+        start = time.time()
+        cszfast.calculate_cmb(**params_settings)
+        end = time.time()
+        # print('cmb calculation took:',end-start)
+
+
+        # print('calculating pkl')
+        start = time.time()
+        cszfast.calculate_pkl(**params_settings)
+        end = time.time()
+        # print('pk calculation took:',end-start)
+
+        # print('calculating pknl')
+        start = time.time()
+        cszfast.calculate_pknl(**params_settings)
+        end = time.time()
+        # print('pknl calculation took:',end-start)
+
+        self.tsz.use_class_sz_fast_mode = 1
+
+        if class_sz_cosmo_init(&(self.ba), &(self.th), &(self.pt), &(self.nl), &(self.pm),
+        &(self.sp),&(self.le),&(self.tsz),&(self.pr)) == _FAILURE_:
+            self.struct_cleanup()
+            raise CosmoComputationError(self.tsz.error_message)
+
+        # print('tabulate sigma')
+        start = time.time()
+        cszfast.calculate_sigma(**params_settings)
+        # print('lnsigma2',cszfast.cszfast_pk_grid_lnsigma2_flat)
+        # print('dsigma2',cszfast.cszfast_pk_grid_dsigma2_flat)
+        # print('ln1pz',cszfast.cszfast_pk_grid_ln1pz)
+        # print('lnr',cszfast.cszfast_pk_grid_lnr)
+        index_z_r = 0
+        for index_z in range(self.tsz.n_arraySZ):
+          for index_r in range(self.tsz.ndimSZ):
+                self.tsz.array_radius[index_r] = cszfast.cszfast_pk_grid_lnr[index_r]
+                self.tsz.array_redshift[index_z] = cszfast.cszfast_pk_grid_ln1pz[index_z]
+                self.tsz.array_sigma_at_z_and_R[index_z_r] = cszfast.cszfast_pk_grid_lnsigma2_flat[index_z_r]
+                self.tsz.array_dsigma2dR_at_z_and_R[index_z_r] = cszfast.cszfast_pk_grid_dsigma2_flat[index_z_r]
+                self.tsz.array_pkl_at_z_and_k[index_z_r] = cszfast.cszfast_pk_grid_pk_flat[index_z_r]
+                self.tsz.array_pknl_at_z_and_k[index_z_r] = cszfast.cszfast_pk_grid_pknl_flat[index_z_r]
+                self.tsz.array_lnk[index_r] = cszfast.cszfast_pk_grid_lnk[index_r]
+                index_z_r += 1
+        end = time.time()
+        # print('end tabulate sigma:',end-start)
+
+        if szpowerspectrum_init(&(self.ba), &(self.th), &(self.pt), &(self.nl), &(self.pm),
+        &(self.sp),&(self.le),&(self.tsz),&(self.pr)) == _FAILURE_:
+            self.struct_cleanup()
+            raise CosmoComputationError(self.tsz.error_message)
+        if szcount_init(&(self.ba), &(self.nl), &(self.pm),
+        &(self.tsz),&(self.csz)) == _FAILURE_:
+            self.struct_cleanup()
+            raise CosmoComputationError(self.tsz.error_message)
+
+        self.computed = True
+        return
+
+
+
+
+
+
+    def compute_class_sz(self,pdict_to_update):
+        self._fillparfile()
+        for k,v in pdict_to_update.items():
+          if k == 'fNL':
+            self.tsz.fNL = pdict_to_update['fNL']
+          if k == 'A_rho0':
+            self.tsz.A_rho0 = pdict_to_update['A_rho0']
+          if k == 'A_alpha':
+            self.tsz.A_alpha = pdict_to_update['A_alpha']
+          if k == 'A_beta':
+              self.tsz.A_beta = pdict_to_update['A_beta']
+          if k == 'alpha_m_rho0':
+            self.tsz.alpha_m_rho0 = pdict_to_update['alpha_m_rho0']
+          if k == 'alpha_m_alpha':
+            self.tsz.alpha_m_alpha = pdict_to_update['alpha_m_alpha']
+          if k == 'alpha_m_beta':
+              self.tsz.alpha_m_beta = pdict_to_update['alpha_m_beta']
+          if k == 'alpha_z_rho0':
+            self.tsz.alpha_z_rho0 = pdict_to_update['alpha_z_rho0']
+          if k == 'alpha_z_alpha':
+            self.tsz.alpha_z_alpha = pdict_to_update['alpha_z_alpha']
+          if k == 'alpha_z_beta':
+              self.tsz.alpha_z_beta = pdict_to_update['alpha_z_beta']
+          if k == 'c_B16':
+              self.tsz.c_B16 = pdict_to_update['cp_B16']
+          if k == 'mcut':
+              self.tsz.mcut = pdict_to_update['mcut']
+          if k == 'alphap_m_rho0':
+              self.tsz.alphap_m_rho0 = pdict_to_update['alphap_m_rho0']
+          if k == 'alphap_m_alpha':
+             self.tsz.alphap_m_alpha = pdict_to_update['alphap_m_alpha']
+          if k == 'alphap_m_beta':
+              self.tsz.alphap_m_beta = pdict_to_update['alphap_m_beta']
+          if k == 'alpha_c_rho0':
+            self.tsz.alpha_c_rho0 = pdict_to_update['alpha_c_rho0']
+          if k == 'alpha_c_alpha':
+            self.tsz.alpha_c_alpha = pdict_to_update['alpha_c_alpha']
+          if k == 'alpha_c_beta':
+              self.tsz.alpha_c_beta = pdict_to_update['alpha_c_beta']
+          if k == 'gamma_B16':
+              self.tsz.gamma_B16 = pdict_to_update['gamma_B16']
+          if k == 'xc_B16':
+              self.tsz.xc_B16 = pdict_to_update['xc_B16']
+          if k == 'P0_B12':
+              self.tsz.P0_B12 = pdict_to_update['P0_B12']
+          if k == 'beta_B12':
+              self.tsz.beta_B12 = pdict_to_update['beta_B12']
+          if k == 'alpha_B12':
+              self.tsz.alpha_B12 = pdict_to_update['alpha_B12']
+          if k == 'gamma_B12':
+              self.tsz.gamma_B12 = pdict_to_update['gamma_B12']
+          if k == 'xc_B12':
+              self.tsz.xc_B12 = pdict_to_update['xc_B12']
+          if k == 'alpha_m_P0_B12':
+              self.tsz.alpha_m_P0_B12 = pdict_to_update['alpha_m_P0_B12']
+          if k == 'alpha_m_xc_B12':
+              self.tsz.alpha_m_xc_B12 = pdict_to_update['alpha_m_xc_B12']
+          if k == 'alpha_m_beta_B12':
+              self.tsz.alpha_m_beta_B12 = pdict_to_update['alpha_m_beta_B12']
+          if k == 'alpha_z_P0_B12':
+              self.tsz.alpha_z_P0_B12 = pdict_to_update['alpha_z_P0_B12']
+          if k == 'alpha_z_xc_B12':
+              self.tsz.alpha_z_xc_B12 = pdict_to_update['alpha_z_xc_B12']
+          if k == 'alpha_z_beta_B12':
+              self.tsz.alpha_z_beta_B12 = pdict_to_update['alpha_z_beta_B12']
+          if k == 'c_B12':
+              self.tsz.c_B12 = pdict_to_update['cp_B12']
+          if k == 'mcut_B12':
+              self.tsz.mcut_B12 = pdict_to_update['mcut_B12']
+          if k == 'alphap_m_P0_B12':
+              self.tsz.alphap_m_P0_B12 = pdict_to_update['alphap_m_P0_B12']
+          if k == 'alphap_m_xc_B12':
+              self.tsz.alphap_m_xc_B12 = pdict_to_update['alphap_m_xc_B12']
+          if k == 'alphap_m_beta_B12':
+              self.tsz.alphap_m_beta_B12 = pdict_to_update['alphap_m_beta_B12']
+          if k == 'alpha_c_P0_B12':
+              self.tsz.alpha_c_P0_B12 = pdict_to_update['alpha_c_P0_B12']
+          if k == 'alpha_c_xc_B12':
+              self.tsz.alpha_c_xc_B12 = pdict_to_update['alpha_c_xc_B12']
+          if k == 'alpha_c_beta_B12':
+              self.tsz.alpha_c_beta_B12 = pdict_to_update['alpha_c_beta_B12']
+          if k == 'x_outSZ':
+              self.tsz.x_outSZ = pdict_to_update['x_outSZ']
+        # print('array_redshift:',
+        #       self.tsz.array_redshift[0],
+        #       self.tsz.array_redshift[1],
+        #       self.tsz.array_redshift[self.tsz.n_arraySZ-1])
+        # print('array_radius:',
+        #       self.tsz.array_radius[0],
+        #       self.tsz.array_radius[1],
+        #       self.tsz.array_radius[self.tsz.ndimSZ-1])
+        # print('array_dsigma2dR_at_z_and_R:',
+        #       self.tsz.array_dsigma2dR_at_z_and_R[0],
+        #       self.tsz.array_dsigma2dR_at_z_and_R[1],
+        #       self.tsz.array_dsigma2dR_at_z_and_R[self.tsz.n_arraySZ*self.tsz.ndimSZ-1])
+        # print('array_sigma_at_z_and_R:',
+        #       self.tsz.array_sigma_at_z_and_R[0],
+        #       self.tsz.array_sigma_at_z_and_R[1],
+        #       self.tsz.array_sigma_at_z_and_R[self.tsz.n_arraySZ*self.tsz.ndimSZ-1])
+
+        # # BB playground for emulators
+
+        # print(self._pars)
+        # params_settings = self._pars
+        # cszfast = classy_szfast(**params_settings)
+
+
+        # print('calculating cmb')
+        # start = time.time()
+        # cszfast.calculate_cmb(**params_settings)
+        # end = time.time()
+        # print('cmb calculation took:',end-start)
+
+
+        # print('calculating pkl')
+        # start = time.time()
+        # cszfast.calculate_pkl(**params_settings)
+        # end = time.time()
+        # print('pk calculation took:',end-start)
+
+        # print('calculating pknl')
+        # start = time.time()
+        # cszfast.calculate_pknl(**params_settings)
+        # end = time.time()
+        # print('pknl calculation took:',end-start)
+
+
+        # print('tabulate sigma')
+        # start = time.time()
+        # cszfast.calculate_sigma(**params_settings)
+        # print('lnsigma2',cszfast.cszfast_pk_grid_lnsigma2_flat)
+        # print('dsigma2',cszfast.cszfast_pk_grid_dsigma2_flat)
+        # print('ln1pz',cszfast.cszfast_pk_grid_ln1pz)
+        # print('lnr',cszfast.cszfast_pk_grid_lnr)
+        # index_z_r = 0
+        # for index_z in range(self.tsz.n_arraySZ):
+        #   for index_r in range(self.tsz.ndimSZ):
+        #         self.tsz.array_radius[index_r] = cszfast.cszfast_pk_grid_lnr[index_r]
+        #         self.tsz.array_redshift[index_z] = cszfast.cszfast_pk_grid_ln1pz[index_z]
+        #         self.tsz.array_sigma_at_z_and_R[index_z_r] = cszfast.cszfast_pk_grid_lnsigma2_flat[index_z_r]
+        #         self.tsz.array_dsigma2dR_at_z_and_R[index_z_r] = cszfast.cszfast_pk_grid_dsigma2_flat[index_z_r]
+        #         self.tsz.array_pkl_at_z_and_k[index_z_r] = cszfast.cszfast_pk_grid_pk_flat[index_z_r]
+        #         self.tsz.array_pknl_at_z_and_k[index_z_r] = cszfast.cszfast_pk_grid_pknl_flat[index_z_r]
+        #         self.tsz.array_lnk[index_r] = cszfast.cszfast_pk_grid_lnk[index_r]
+        #         index_z_r += 1
+        # end = time.time()
+        # print('end tabulate sigma:',end-start)
+        if szpowerspectrum_init(&(self.ba), &(self.th), &(self.pt), &(self.nl), &(self.pm),
+        &(self.sp),&(self.le),&(self.tsz),&(self.pr)) == _FAILURE_:
+            self.struct_cleanup()
+            raise CosmoComputationError(self.tsz.error_message)
+        self.computed = True
+        return
+
+
+
 
     def raw_cl(self, lmax=-1, nofail=False):
         """
@@ -1016,7 +1304,7 @@ cdef class Class:
         return pk_at_k_z, k, z
 
     # Gives sigma(R,z) for a given (R,z)
-    def sigma(self,double R,double z):
+    def sigma(self,double R,double z, h_units = False):
         """
         Gives sigma (total matter) for a given R and z
         (R is the radius in units of Mpc, so if R=8/h this will be the usual sigma8(z)
@@ -1107,6 +1395,44 @@ cdef class Class:
                  raise CosmoSevereError(self.sp.error_message)
 
         return window_nfw
+
+
+    #################################
+    # gives an estimation of f(z)*sigma8(z) at the scale of 8 h/Mpc, computed as (d sigma8/d ln a)
+    def effective_f_sigma8(self, z, z_step=0.1):
+        """
+        effective_f_sigma8(z)
+
+        Returns the time derivative of sigma8(z) computed as (d sigma8/d ln a)
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        z_step : float
+                Default step used for the numerical two-sided derivative. For z < z_step the step is reduced progressively down to z_step/10 while sticking to a double-sided derivative. For z< z_step/10 a single-sided derivative is used instead.
+
+        Returns
+        -------
+        (d ln sigma8/d ln a)(z) (dimensionless)
+        """
+
+        # we need d sigma8/d ln a = - (d sigma8/dz)*(1+z)
+
+        # if possible, use two-sided derivative with default value of z_step
+        if z >= z_step:
+            return (self.sigma(8/self.h(),z-z_step,h_units=True)-self.sigma(8/self.h(),z+z_step,h_units=True))/(2.*z_step)*(1+z)
+        else:
+            # if z is between z_step/10 and z_step, reduce z_step to z, and then stick to two-sided derivative
+            if (z > z_step/10.):
+                z_step = z
+                return (self.sigma(8/self.h(),z-z_step,h_units=True)-self.sigma(8/self.h(),z+z_step,h_units=True))/(2.*z_step)*(1+z)
+            # if z is between 0 and z_step/10, use single-sided derivative with z_step/10
+            else:
+                z_step /=10
+                return (self.sigma(8/self.h(),z,h_units=True)-self.sigma(8/self.h(),z+z_step,h_units=True))/z_step*(1+z)
+
+
 
     def age(self):
         self.compute(["background"])
@@ -1770,6 +2096,22 @@ cdef class Class:
             cl['k'].append(self.tsz.k_for_pk_hm[index])
         return cl
 
+    def b_yyy(self):
+        """
+        (class_sz) Return the 1-halo, 2-halo and 3-halo terms of tsz bispectrum
+        """
+        cl = {}
+        cl['ell'] = []
+        cl['1h'] = []
+        cl['2h'] = []
+        cl['3h'] = []
+        for index in range(self.tsz.nlSZ):
+            cl['1h'].append(self.tsz.b_tSZ_tSZ_tSZ_1halo[index])
+            cl['2h'].append(self.tsz.b_tSZ_tSZ_tSZ_2h[index])
+            cl['3h'].append(self.tsz.b_tSZ_tSZ_tSZ_3h[index])
+            cl['ell'].append(self.tsz.ell[index])
+        return cl
+
     def pk_gg_at_z_hm(self):
         """
         (class_sz) Return the 1-halo and 2-halo terms of 3d P(k) gg power spectrum
@@ -1781,6 +2123,18 @@ cdef class Class:
         for index in range(self.tsz.n_k_for_pk_hm):
             cl['1h'].append(self.tsz.pk_gg_at_z_1h[index])
             cl['2h'].append(self.tsz.pk_gg_at_z_2h[index])
+            cl['k'].append(self.tsz.k_for_pk_hm[index])
+        return cl
+
+    def pk_b_at_z_2h(self):
+        """
+        (class_sz) Return the 1-halo and 2-halo terms of 3d P(k) bb power spectrum
+        """
+        cl = {}
+        cl['k'] = []
+        cl['2h'] = []
+        for index in range(self.tsz.n_k_for_pk_hm):
+            cl['2h'].append(self.tsz.pk_b_at_z_2h[index])
             cl['k'].append(self.tsz.k_for_pk_hm[index])
         return cl
 
@@ -1840,6 +2194,19 @@ cdef class Class:
             cl['I0'].append(self.tsz.cib_monopole[index])
         return cl
 
+    def cib_shotnoise(self):
+        """
+        (class_sz) Return the cib shotnoise as a function of frequency
+        """
+        cl = {}
+        cl['nu'] = []
+        cl['shotnoise'] = []
+        for id_nu1 in range(self.tsz.cib_frequency_list_num):
+            nu1 = self.tsz.cib_frequency_list[id_nu1]
+            cl['nu'].append(nu1)
+            cl['shotnoise'].append(self.tsz.cib_shotnoise[id_nu1])
+        return cl
+
     def cl_cib_cib(self):
         """
         (class_sz) Return the 1-halo and 2-halo terms of cib x cib power spectrum
@@ -1861,6 +2228,52 @@ cdef class Class:
                     cl['ell'].append(self.tsz.ell[index])
                 cl_cib[str(int(nu1))+'x'+str(int(nu2))] = cl
         return cl_cib
+
+    def cl_galn_galn(self):
+        """
+        (class_sz) Return the 1-halo and 2-halo terms of gal x gal power spectrum
+        """
+        cl_gg = {}
+
+        for id_nu1 in range(self.tsz.galaxy_samples_list_num):
+            for id_nu2 in range(0,id_nu1+1):
+                nu1 = self.tsz.galaxy_samples_list[id_nu1]
+                nu2 = self.tsz.galaxy_samples_list[id_nu2]
+
+                cl = {}
+                cl['ell'] = []
+                cl['1h'] = []
+                cl['2h'] = []
+                cl['hf'] = []
+                for index in range(self.tsz.nlSZ):
+                    cl['1h'].append(self.tsz.cl_ngal_ngal_1h[id_nu1][id_nu2][index])
+                    cl['2h'].append(self.tsz.cl_ngal_ngal_2h[id_nu1][id_nu2][index])
+                    cl['hf'].append(self.tsz.cl_ngal_ngal_hf[id_nu1][id_nu2][index])
+                    cl['ell'].append(self.tsz.ell[index])
+                cl_gg[str(int(nu1))+'x'+str(int(nu2))] = cl
+        return cl_gg
+
+    def cl_galn_lens(self):
+        """
+        (class_sz) Return the 1-halo and 2-halo terms of gal x lens power spectrum
+        """
+        cl_gk = {}
+
+        for id_nu1 in range(self.tsz.galaxy_samples_list_num):
+            nu1 = self.tsz.galaxy_samples_list[id_nu1]
+            cl = {}
+            cl['ell'] = []
+            cl['1h'] = []
+            cl['2h'] = []
+            cl['hf'] = []
+            for index in range(self.tsz.nlSZ):
+                cl['1h'].append(self.tsz.cl_ngal_lens_1h[id_nu1][index])
+                cl['2h'].append(self.tsz.cl_ngal_lens_2h[id_nu1][index])
+                cl['hf'].append(self.tsz.cl_ngal_lens_hf[id_nu1][index])
+                cl['ell'].append(self.tsz.ell[index])
+            cl_gk[str(int(nu1))] = cl
+        return cl_gk
+
 
     def cl_tSZ_cib(self):
         """
@@ -1969,6 +2382,19 @@ cdef class Class:
 
     def get_scale_dependent_bias_at_z_and_k(self,z_asked,k_asked,bh):
         return get_scale_dependent_bias_at_z_and_k(z_asked,k_asked,bh,&self.tsz)
+
+
+    def get_szcounts_rates_at_z_sigobs_qobs(self,z_asked,sig_asked, qobs_asked):
+        return get_szcounts_rates_at_z_sigobs_qobs(z_asked, sig_asked, qobs_asked, &self.tsz)
+
+
+    def get_szcounts_dndzdqgt_at_z_q(self,z_asked,qobs_asked):
+        return get_szcounts_dndzdqgt_at_z_q(z_asked, qobs_asked, &self.tsz)
+
+    def get_szcounts_dndzdq_at_z_q(self,z_asked,qobs_asked):
+        return get_szcounts_dndzdq_at_z_q(z_asked, qobs_asked, &self.tsz)
+
+
 
     def get_params_sz(self):
         """
@@ -2123,6 +2549,24 @@ cdef class Class:
         #    elif (self.tsz.tau_profile == 1): # nfw case
         return tau_normalization*get_gas_density_profile_at_k_M_z(l_asked,m_asked,z_asked,&self.tsz)
 
+    def get_rho_2h_at_r_and_m_and_z(self,r_asked,m_asked,z_asked):
+        return get_rho_2h_at_r_and_m_and_z(r_asked,m_asked,z_asked,&self.tsz,&self.ba)
+
+
+    def get_P_delta_at_m_and_z_b12(self,m_asked,z_asked):
+        # this is in ev/cm3, see https://arxiv.org/pdf/2202.02275.pdf
+        # return get_P_delta_at_m_and_z_b12(r_asked,m_asked,z_asked,&self.tsz,&self.ba)
+        r200c = self.get_r_delta_of_m_delta_at_z(200,m_asked,z_asked)
+        f_b =  self.get_f_b()
+        Eh = self.Hubble(z_asked)/self.Hubble(0)
+        P200 = m_asked/r200c*f_b*2.61051e-18*(100.*self.ba.h*Eh)**2.
+        return P200
+
+
+    def get_gas_pressure_2h_at_r_and_m_and_z(self,r_asked,m_asked,z_asked):
+        return get_gas_pressure_2h_at_r_and_m_and_z(r_asked,m_asked,z_asked,&self.tsz,&self.ba)
+
+
     def get_r_delta_of_m_delta_at_z(self,delta,m_delta,z):
         return (m_delta*3./4./np.pi/delta/self.get_rho_crit_at_z(z))**(1./3.)
 
@@ -2153,16 +2597,34 @@ cdef class Class:
     def get_mu_e(self):
         return self.tsz.mu_e
 
+    def get_Omega_m_0(self):
+        return self.tsz.Omega_m_0
+    def get_Omega_r_0(self):
+        return self.tsz.Omega_r_0
+
     def get_m_nfw(self,x):
         return m_nfw(x)
 
     def get_rho_crit_at_z(self,z_asked):
         return get_rho_crit_at_z(z_asked,&self.ba,&self.tsz)
 
+    def get_pk_nonlin_at_k_and_z(self,k, z):
+        return get_pk_nonlin_at_k_and_z(k,z,&self.ba,&self.pm,&self.nl,&self.tsz)
+
+    def get_pk_lin_at_k_and_z(self,k, z):
+        return get_pk_lin_at_k_and_z(k,z,&self.ba,&self.pm,&self.nl,&self.tsz)
+
+    def get_pk_nonlin_at_k_and_z_fast(self,k, z):
+        return get_pk_nonlin_at_k_and_z_fast(k,z,&self.ba,&self.pm,&self.nl,&self.tsz)
+
+    def get_pk_lin_at_k_and_z_fast(self,k, z):
+        return get_pk_lin_at_k_and_z_fast(k,z,&self.ba,&self.pm,&self.nl,&self.tsz)
+
     def get_gas_profile_at_x_M_z_b16_200c(self,
                                           r_asked,
                                           m_asked,
                                           z_asked,
+                                          c_asked = 0.,
                                           A_rho0 = 4.e3,
                                           A_alpha = 0.88,
                                           A_beta = 3.83,
@@ -2172,12 +2634,20 @@ cdef class Class:
                                           alpha_z_rho0 = -0.66,
                                           alpha_z_alpha = 0.19,
                                           alpha_z_beta = -0.025,
+                                          mcut = 1e14,
+                                          alphap_m_rho0 = 0.29,
+                                          alphap_m_alpha = -0.03,
+                                          alphap_m_beta = 0.04,
+                                          alpha_c_rho0 = 0.,
+                                          alpha_c_alpha = 0.,
+                                          alpha_c_beta = 0.,
                                           gamma = -0.2,
                                           xc = 0.5
                                           ):
         return get_gas_profile_at_x_M_z_b16_200c(r_asked,
                                                  m_asked,
                                                  z_asked,
+                                                 c_asked,
                                                  A_rho0,
                                                  A_alpha,
                                                  A_beta,
@@ -2187,6 +2657,13 @@ cdef class Class:
                                                  alpha_z_rho0,
                                                  alpha_z_alpha,
                                                  alpha_z_beta,
+                                                 mcut,
+                                                 alphap_m_rho0,
+                                                 alphap_m_alpha,
+                                                 alphap_m_beta,
+                                                 alpha_c_rho0,
+                                                 alpha_c_alpha,
+                                                 alpha_c_beta,
                                                  gamma,
                                                  xc,
                                                  &self.ba,
@@ -2196,6 +2673,7 @@ cdef class Class:
                                                         x_asked,
                                                         m_asked,
                                                         z_asked,
+                                                        c_asked = 0.,
                                                         A_P0 = 18.1,
                                                         A_xc = 0.497,
                                                         A_beta = 4.35,
@@ -2205,11 +2683,19 @@ cdef class Class:
                                                         alpha_z_P0 = -0.758,
                                                         alpha_z_xc = 0.731,
                                                         alpha_z_beta = 0.415,
+                                                        mcut = 1e14,
+                                                        alphap_m_P0 = 0.154,
+                                                        alphap_m_xc = -0.00865,
+                                                        alphap_m_beta = 0.0393,
+                                                        alpha_c_P0 = 0.,
+                                                        alpha_c_xc = 0.,
+                                                        alpha_c_beta = 0.,
                                                         alpha = 1.,
                                                         gamma = -0.3):
         return  get_pressure_P_over_P_delta_at_x_M_z_b12_200c(x_asked,
                                                               m_asked,
                                                               z_asked,
+                                                              c_asked,
                                                               A_P0,
                                                               A_xc,
                                                               A_beta,
@@ -2219,6 +2705,13 @@ cdef class Class:
                                                               alpha_z_P0,
                                                               alpha_z_xc,
                                                               alpha_z_beta,
+                                                              mcut,
+                                                              alphap_m_P0,
+                                                              alphap_m_xc,
+                                                              alphap_m_beta,
+                                                              alpha_c_P0,
+                                                              alpha_c_xc,
+                                                              alpha_c_beta,
                                                               alpha,
                                                               gamma,
                                                               &self.ba,
@@ -2286,6 +2779,9 @@ cdef class Class:
     def get_planck_sigma_at_theta500(self, theta500):
         return get_planck_sigma_at_theta500(theta500, &self.tsz)
 
+    def get_szcountsz_sigma_at_theta_in_patch(self, id,theta500):
+        return get_szcountsz_sigma_at_theta_in_patch(theta500, id, &self.tsz)
+
     def get_second_order_bias_at_z_and_nu(self,z,nu):
         return get_second_order_bias_at_z_and_nu(z,nu,&self.tsz,&self.ba)
 
@@ -2294,6 +2790,10 @@ cdef class Class:
 
     def get_sigma_at_z_and_m(self,z,m):
         return get_sigma_at_z_and_m(z,m,&self.tsz,&self.ba)
+
+    def get_dlnsigma_dlnR_at_z_and_m(self,z,m):
+        return get_dlnsigma_dlnR_at_z_and_m(z,m,&self.tsz,&self.ba)
+
     def get_sigma8_at_z(self,z):
         return get_sigma8_at_z(z,&self.tsz,&self.ba)
     def get_y_at_m_and_z(self,m,z):
@@ -2557,9 +3057,11 @@ cdef class Class:
     def get_1e6xdy_from_battaglia_pressure_at_x_z_and_m200c(self,z,m,x):
         return get_1e6xdy_from_battaglia_pressure_at_x_z_and_m200c(z,m,x,&self.ba,&self.tsz)
 
-    def get_1e6xdy_from_gnfw_pressure_at_x_z_and_m500c(self,z,m,x):
-        return get_1e6xdy_from_gnfw_pressure_at_x_z_and_m500c(z,m,x,&self.ba,&self.tsz)
+    def get_1e6xdy_from_gnfw_pressure_at_x_z_and_m500c(self,z,m,x,d):
+        return get_1e6xdy_from_gnfw_pressure_at_x_z_and_m500c(z,m,x,d,&self.ba,&self.tsz)
 
+    def szunbinned_loglike(self):
+        return self.tsz.szunbinned_loglike
 
     def dndzdy_theoretical(self):
         """
@@ -2577,7 +3079,7 @@ cdef class Class:
             z_center.append(self.csz.z_center[index_z])
             z_edges.append(self.csz.z_center[index_z]-0.5*self.csz.dz)
             dndzdy_index_z = []
-            for index_y in range(self.csz.Nbins_y +1):
+            for index_y in range(self.csz.Nbins_y):
                 dndzdy_index_z.append(self.csz.dNdzdy_theoretical[index_z][index_y])
             dndzdy.append(dndzdy_index_z)
 
@@ -2586,9 +3088,9 @@ cdef class Class:
         for index_y in range(self.csz.Nbins_y):
             log10y_center.append(self.csz.logy[index_y])
             log10y_edges.append(self.csz.logy[index_y]-0.5*self.csz.dlogy)
-        log10y_center.append(self.csz.logy[self.csz.Nbins_y])
-        log10y_edges.append(self.csz.logy[self.csz.Nbins_y]-0.5*self.tsz.bin_dlog10_snr_last_bin)
-        log10y_edges.append(self.csz.logy[self.csz.Nbins_y]+0.5*self.tsz.bin_dlog10_snr_last_bin)
+        #log10y_center.append(self.csz.logy[self.csz.Nbins_y-1])
+        #log10y_edges.append(self.csz.logy[self.csz.Nbins_y-1]-0.5*self.tsz.bin_dlog10_snr_last_bin)
+        log10y_edges.append(self.csz.logy[self.csz.Nbins_y-1]+0.5*self.csz.dlogy)
         return {'dndzdy':dndzdy,'z_center':z_center,'z_edges':z_edges,'log10y_center':log10y_center,'log10y_edges':log10y_edges}
 
 

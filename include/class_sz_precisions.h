@@ -5,6 +5,7 @@ class_sz_string_parameter(path_to_ref_trispectrum_for_cobaya,"path_to_ref_trispe
 class_sz_string_parameter(full_path_to_noise_curve_for_y_y,"full_path_to_noise_curve_for_y_y","full_path_to_noise_curve_for_y_y")
 class_sz_string_parameter(full_path_to_noise_curve_for_t_t,"full_path_to_noise_curve_for_t_t","full_path_to_noise_curve_for_t_t")
 class_sz_string_parameter(full_path_to_dndz_gal,"/sz_auxiliary_files/WISC_bin3.txt","custom dndz file")
+class_sz_string_parameter(full_path_and_prefix_to_dndz_ngal,"/sz_auxiliary_files/WISC_bin3_ngal_example","custom dndz file")
 class_sz_string_parameter(full_path_to_source_dndz_gal,"/sz_auxiliary_files/WISC_bin3.txt","custom dndz file")
 class_sz_string_parameter(full_path_to_redshift_dependent_M_min,"/sz_auxiliary_files/websky_halo_mass_completion_z_Mmin_in_Msun_over_h.txt","custom M_min file")
 
@@ -13,6 +14,9 @@ class_sz_string_parameter(UNWISE_dndz_file,"/sz_auxiliary_files/UNWISE_galaxy_di
 class_sz_string_parameter(UNWISE_fdndz_file,"/sz_auxiliary_files/UNWISE_galaxy_distributions/normalised_fdndz.txt","unWISE fdndz file")
 class_sz_string_parameter(UNWISE_cosmos_dndz_file,"/sz_auxiliary_files/UNWISE_galaxy_distributions/normalised_dndz_cosmos.txt","unWISE fdndz file")
 class_sz_string_parameter(WISC3_dndz_file,"/sz_auxiliary_files/WISC_bin3.txt","WISC bin 3 file")
+class_sz_string_parameter(cib_Snu_file_snu,"/sz_auxiliary_files/filtered_snu_planck_90_100_143_217_353_545_857.txt","cib_Snu_file_snu")
+class_sz_string_parameter(cib_Snu_file_z,"/sz_auxiliary_files/filtered_snu_planck_z.txt","cib_Snu_file_z")
+class_sz_string_parameter(cib_Snu_file_nu,"/sz_auxiliary_files/filtered_snu_planck_nu.txt","cib_Snu_file_nu")
 class_sz_string_parameter(A10_file,"/sz_auxiliary_files/class_sz_lnIgnfw-and-d2lnIgnfw-vs-lnell-over-ell500_A10.txt","A10 file")
 class_sz_string_parameter(P13_file,"/sz_auxiliary_files/class_sz_lnIgnfw-and-d2lnIgnfw-vs-lnell-over-ell500_P13.txt","P13 file")
 class_sz_string_parameter(Tinker_et_al_10_alpha_consistency_msyriac_file,"/sz_auxiliary_files/Tinker_et_al_10_alpha_consistency_msyriac.txt","Tinker_et_al_10_alpha_consistency_msyriac_file")
@@ -51,9 +55,27 @@ class_sz_ptsz_parameter(n_k_density_profile,int,100)
 class_sz_ptsz_parameter(n_m_density_profile,int,100)
 class_sz_ptsz_parameter(n_z_density_profile,int,100)
 
-class_sz_ptsz_parameter(n_ell_pressure_profile,int,50)
-class_sz_ptsz_parameter(n_m_pressure_profile,int,300)
-class_sz_ptsz_parameter(n_z_pressure_profile,int,300)
+class_sz_ptsz_parameter(szcounts_qmin_fft_padded,double,-100.)
+class_sz_ptsz_parameter(szcounts_qmax_fft_padded,double,100.)
+class_sz_ptsz_parameter(szcounts_lnqmin_fft,double,-5.)
+class_sz_ptsz_parameter(szcounts_lnqmax_fft,double,5.)
+
+class_sz_ptsz_parameter(use_skyaveraged_noise,int,0)
+class_sz_ptsz_parameter(szcounts_fft_nqobs,int,50)
+class_sz_ptsz_parameter(szcounts_fft_nexpected_qobs_n,int,50)
+class_sz_ptsz_parameter(szcounts_fft_nexpected_qobs_min,double,5.)
+class_sz_ptsz_parameter(szcounts_fft_nexpected_qobs_max,double,25.)
+class_sz_ptsz_parameter(szcounts_fft_nz,int,50)
+class_sz_ptsz_parameter(szcounts_fft_nsigmayobs,int,20)
+class_sz_ptsz_parameter(szcounts_fft_z_min,double,0.)
+class_sz_ptsz_parameter(szcounts_fft_sigmayobs_min,double,5e-5)
+class_sz_ptsz_parameter(szcounts_fft_z_max,double,2.)
+class_sz_ptsz_parameter(szcounts_fft_sigmayobs_max,double,1e-2)
+
+class_sz_ptsz_parameter(n_k_pressure_profile,int,50)
+class_sz_ptsz_parameter(n_k_pressure_profile_2h,int,50)
+class_sz_ptsz_parameter(n_m_pressure_profile,int,30)
+class_sz_ptsz_parameter(n_z_pressure_profile,int,30)
 
 class_sz_ptsz_parameter(n_z_psi_b1g,int,50)
 class_sz_ptsz_parameter(n_l_psi_b1g,int,50)
@@ -100,6 +122,10 @@ class_sz_ptsz_parameter(n_mass_m_to_xout , int,102);
 class_sz_ptsz_parameter(use_bg_at_z_in_ksz2g_eff, int, 0);
 class_sz_ptsz_parameter(use_fdndz_for_ksz2g_eff, int, 0);
 
+
+class_sz_ptsz_parameter(n_y_y_to_m,int,50)
+class_sz_ptsz_parameter(n_z_y_to_m,int,50)
+
 class_sz_ptsz_parameter(n_z_psi_b1gt,int,50)
 class_sz_ptsz_parameter(n_l_psi_b1gt,int,50)
 
@@ -109,8 +135,23 @@ class_sz_ptsz_parameter(n_l_psi_b1kgt,int,50)
 class_sz_ptsz_parameter(N_samp_fftw,int,150)
 class_sz_ptsz_parameter(l_min_samp_fftw,double,1e-12)
 class_sz_ptsz_parameter(l_max_samp_fftw,double,1e9)
-class_sz_ptsz_parameter(k_min_gas_density_profile,double,1e-4)
+class_sz_ptsz_parameter(k_min_samp_fftw,double,1e-12)
+class_sz_ptsz_parameter(k_max_samp_fftw,double,1e9)
+class_sz_ptsz_parameter(k_min_gas_density_profile,double,1e-3)
 class_sz_ptsz_parameter(k_max_gas_density_profile,double,1e1)
+class_sz_ptsz_parameter(k_min_gas_pressure_profile,double,1e-2)
+class_sz_ptsz_parameter(k_max_gas_pressure_profile,double,1e2)
+
+class_sz_ptsz_parameter(x_min_gas_density_fftw,double,1e-5)
+class_sz_ptsz_parameter(x_max_gas_density_fftw,double,1e2)
+
+class_sz_ptsz_parameter(x_min_gas_pressure_fftw,double,1e-5)
+class_sz_ptsz_parameter(x_max_gas_pressure_fftw,double,1e2)
+
+class_sz_ptsz_parameter(use_fft_for_profiles_transform,int,0)
+
+class_sz_ptsz_parameter(k_min_gas_pressure_profile_2h,double,1e-2)
+class_sz_ptsz_parameter(k_max_gas_pressure_profile_2h,double,1e2)
 class_sz_ptsz_parameter(normalize_gas_density_profile,int,0)
 
 class_sz_ptsz_parameter(ell_min_kSZ2_gal_multipole_grid,double,2)
