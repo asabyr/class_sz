@@ -1601,6 +1601,7 @@ int pkl_to_knl (
   double k;
 
   k = knl_mpc;
+
   // printf("knl=%.3e k=%.3e z=%.3e\n",knl,k,z);
     //Input: wavenumber in 1/Mpc
     //Output: total matter power spectrum P(k) in \f$ Mpc^3 \f$
@@ -3264,6 +3265,7 @@ int spectra_sigma_ncdm_prime(
     W_prime=3./x/x*sin(x)-9./x/x/x/x*(sin(x)-x*cos(x));
 
 
+
 class_call(nonlinear_pk_at_k_and_z(
                                   pba,
                                   ppm,
@@ -3282,7 +3284,11 @@ class_call(nonlinear_pk_at_k_and_z(
 
     array_for_sigma[i*index_num+index_k]=k;
     array_for_sigma[i*index_num+index_y]=k*k*pk*k*2.*W*W_prime;
-  }
+  //   if (i==ptsz->ln_k_size_for_tSZ-1){printf("k=%.10e,Pk=%.10e, integrand=%.10e",k, pk,k*k*pk*k*2.*W*W_prime);}
+  //
+}
+
+
 
   class_call(array_spline(array_for_sigma,
                           index_num,
@@ -3310,7 +3316,7 @@ class_call(nonlinear_pk_at_k_and_z(
 
 
   *sigma_prime = *sigma_prime/(2.*_PI_*_PI_);
-
+  //printf("sigma prime %.10e", sigma_prime);
   return _SUCCESS_;
 
 }
@@ -5185,7 +5191,8 @@ int spectra_sigma_prime(
 
     array_for_sigma[i*index_num+index_k]=k;
     array_for_sigma[i*index_num+index_y]=k*k*pk*k*2.*W*W_prime;
-  }
+  //   if (i==ptsz->ln_k_size_for_tSZ-1){printf("k=%.10e,Pk=%.10e, integrand=%.10e",k, pk,k*k*pk*k*2.*W*W_prime);}
+}
 
   class_call(array_spline(array_for_sigma,
                           index_num,
@@ -7267,8 +7274,8 @@ int MF_T10 (
 
 
 double get_f_tinker10_at_nu_and_z(double nu, double z,struct tszspectrum * ptsz){
-  if(z>3.) z=3.;
-
+  //if(z>3.) z=3.;
+  //double z=0.8204348752;
   double alpha;
 
   // always do alpha(z)
@@ -7280,7 +7287,9 @@ double get_f_tinker10_at_nu_and_z(double nu, double z,struct tszspectrum * ptsz)
   else{
   alpha = get_T10_alpha_at_z(z,ptsz);
   }
-
+  //printf("alpha=%.5f\n",alpha);
+  //double nutest=8.373694066093893440*8.373694066093893440;
+  //double lognu = log(nutest);
   double lognu = log(nu);
 
 
@@ -7297,6 +7306,8 @@ double get_f_tinker10_at_nu_and_z(double nu, double z,struct tszspectrum * ptsz)
                  *pow(1.+z,-0.01)
                  *exp(lognu)/2.)
             *sqrt(exp(lognu));
+  //printf("fnu=%.18e", result);
+  //exit(0);
   return result;
 
 
@@ -15793,7 +15804,6 @@ if (ptsz->need_sigma == 0)
   double z_max = r8_max(ptsz->z2SZ,ptsz->z2SZ_dndlnM);
   // z_max = r8_min(z_max,ptsz->z_for_pk_hm);
   // z_min = 0.99*z_min;
-
   int index_z;
 
   double tstart, tstop;
@@ -16254,13 +16264,19 @@ int tabulate_dndlnM(struct background * pba,
                     struct nonlinear * pnl,
                     struct primordial * ppm,
                     struct tszspectrum * ptsz){
-
+  // FILE *fp = fopen("/Users/asabyr/Documents/software/class_sz/dlogsigma2dlogRh.txt", "w");
+  // fclose(fp);
+  //
+  // FILE *fp_hmf = fopen("/Users/asabyr/Documents/software/class_sz/hmf_class_sz_grid.txt", "w");
+  // fclose(fp_hmf);
   //Array of z
   // double z_min = r8_min(ptsz->z1SZ,ptsz->z1SZ_dndlnM);
   // double z_max = r8_max(ptsz->z2SZ,ptsz->z2SZ_dndlnM);
   double z_min = r8_min(ptsz->z1SZ,ptsz->z1SZ_dndlnM);
   // z_min = r8_min(z_min,ptsz->z_for_pk_hm);
   double z_max = r8_max(ptsz->z2SZ,ptsz->z2SZ_dndlnM);
+  printf("z_min %.10f=\n",z_min );
+  printf("z_max %.10f=\n",z_max );
   // z_max = r8_min(z_max,ptsz->z_for_pk_hm);
   int index_z;
 
@@ -16331,21 +16347,34 @@ class_alloc_parallel(pvectsz,ptsz->tsz_size*sizeof(double),ptsz->error_message);
 
 class_alloc_parallel(pvecback,pba->bg_size*sizeof(double),pba->error_message);
 
+// double hmpdf_z[65];
+// FILE *fp_swp_z = fopen("/Users/asabyr/Documents/software/class_sz/hmpdf_zs.bin", "rb");
+// fread(hmpdf_z, sizeof(double), 65, fp_swp_z);
+//
+// double hmpdf_M[65];
+// FILE *fp_swp_M = fopen("/Users/asabyr/Documents/software/class_sz/hmpdf_Ms.bin", "rb");
+// fread(hmpdf_M, sizeof(double), 65, fp_swp_M);
+
 
 int i;
 for(i = 0; i<ptsz->tsz_size;i++) pvectsz[i] = 0.;
 
 #pragma omp for schedule (dynamic)
+
+
 for (index_z=0; index_z<ptsz->n_z_dndlnM; index_z++)
 {
 #pragma omp flush(abort)
 
       double tau;
       int first_index_back = 0;
+
+      // double z=hmpdf_z[index_z];
       ptsz->array_z_dndlnM[index_z] =
                                 log(1.+z_min)
                                 +index_z*(log(1.+z_max)-log(1.+z_min))
                                 /(ptsz->n_z_dndlnM-1.); // log(1+z)
+
       double z =   exp(ptsz->array_z_dndlnM[index_z])-1.;
 
       class_call_parallel(background_tau_of_z(pba,z,&tau),
@@ -16374,10 +16403,10 @@ for (index_M=0; index_M<ptsz->n_m_dndlnM; index_M++)
                                     +index_M*(logM_max-logM_min)
                                     /(ptsz->n_m_dndlnM-1.); //log(R)
 
-      //background quantities @ z:
+      // background quantities @ z:
 
       double logM =   ptsz->array_m_dndlnM[index_M];
-
+      // double logM=log(hmpdf_M[index_M]);
 
       pvectsz[ptsz->index_z] = z;
       pvectsz[ptsz->index_Rho_crit] = (3./(8.*_PI_*_G_*_M_sun_))
@@ -16388,11 +16417,20 @@ for (index_M=0; index_M<ptsz->n_m_dndlnM; index_M++)
 
       double omega = pvecback[pba->index_bg_Omega_m];
       pvectsz[ptsz->index_Delta_c]= Delta_c_of_Omega_m(omega);
+
       evaluate_HMF_at_logM_and_z(logM,z,pvecback,pvectsz,pba,pnl,ptsz);
       array_dndlnM_at_z_and_M[index_z][index_M] = log(pvectsz[ptsz->index_hmf]);
+
+      // FILE *fp_hmf = fopen("/Users/asabyr/Documents/software/class_sz/hmf_class_sz_grid.txt", "a");
+      // fprintf(fp_hmf, "%.8f %.18e %.18e\n", z,  exp(logM), log(pvectsz[ptsz->index_hmf]));
+      // fclose(fp_hmf);
+
     }
 
   }
+  // printf("M and z index\n");
+  // printf("%8d\n",index_z);
+  // printf("%8d\n",index_M);
 #ifdef _OPENMP
   tstop = omp_get_wtime();
   if (ptsz->sz_verbose > 0)
@@ -17541,6 +17579,7 @@ double pkl1,pkl2;
   k = exp(lnk1);
     //Input: wavenumber in 1/Mpc
     //Output: total matter power spectrum P(k) in \f$ Mpc^3 \f$
+
    class_call_parallel(nonlinear_pk_at_k_and_z(
                                      pba,
                                      ppm,
@@ -17559,6 +17598,7 @@ double pkl1,pkl2;
   k = exp(lnk2);
     //Input: wavenumber in 1/Mpc
     //Output: total matter power spectrum P(k) in \f$ Mpc^3 \f$
+
    class_call_parallel(nonlinear_pk_at_k_and_z(
                                      pba,
                                      ppm,
@@ -18565,6 +18605,35 @@ double get_dndlnM_at_z_and_M(double z_asked, double m_asked, struct tszspectrum 
  if (m>ptsz->array_m_dndlnM[ptsz->n_m_dndlnM-1])
       return 1e-100;//m =  ptsz->array_m_dndlnM[ptsz->n_m_dndlnM-1];
 
+//  FILE *fp_tab_hmf_start = fopen("/Users/asabyr/Documents/software/class_sz/class_sz_hmf_arrays.txt","w");
+//  fclose(fp_tab_hmf_start);
+//
+//  FILE *fp_tab_hmf = fopen("/Users/asabyr/Documents/software/class_sz/class_sz_hmf_arrays.txt","a");
+//  int index_z_M=0;
+//
+//  for (int index_z=0; index_z <ptsz->n_z_dndlnM;index_z++){
+//
+//  for (int index_M=0; index_M <ptsz->n_m_dndlnM;index_M++){
+//
+//   fprintf(fp_tab_hmf, "%.8f %.18e %.18e\n", ptsz->array_z_dndlnM[index_z], ptsz->array_m_dndlnM[index_M], ptsz->array_dndlnM_at_z_and_M[index_z_M]);
+//
+//   index_z_M+=1;
+//  }
+// }
+
+// FILE *fp_z=fopen("class_sz_hmf_z_array.bin","w");
+// fwrite(ptsz->array_z_dndlnM, sizeof(double), ptsz->n_z_dndlnM, fp_z);
+// fclose(fp_z);
+//
+// FILE *fp_M=fopen("class_sz_hmf_M_array.bin","w");
+// fwrite(ptsz->array_m_dndlnM, sizeof(double), ptsz->n_m_dndlnM, fp_M);
+// fclose(fp_M);
+//
+// FILE *fp_zM=fopen("class_sz_hmf_array.bin","w");
+// fwrite(ptsz->array_dndlnM_at_z_and_M, sizeof(double), ptsz->n_m_dndlnM*ptsz->n_z_dndlnM, fp_zM);
+// fclose(fp_zM);
+
+//exit(0);
 
  return exp(pwl_interp_2d(ptsz->n_z_dndlnM,
                           ptsz->n_m_dndlnM,

@@ -181,6 +181,7 @@ int szpowerspectrum_init(
   int i;
   for (i=0; i<ptsz->ln_k_size_for_tSZ; i++)
       ptsz->ln_k_for_tSZ[i]=log(ptsz->k_min_for_pk_in_tSZ)+i*log(10.)/ptsz->k_per_decade_for_tSZ;
+  // printf("kmin=%.10e, kmax=%.10e", exp(ptsz->ln_k_for_tSZ[0]), exp(ptsz->ln_k_for_tSZ[ptsz->ln_k_size_for_tSZ-1]));
 
 
    // printf("need_hmf = %d\n",ptsz->need_hmf);
@@ -211,7 +212,7 @@ int szpowerspectrum_init(
                                     }
 
 
-
+  printf("tabulating sigma & dsigma\n");
    tabulate_sigma_and_dsigma_from_pk(pba,pnl,ppm,ptsz);
 
 
@@ -380,13 +381,13 @@ if (ptsz->sz_verbose>1)
 
 
 if (ptsz->need_hmf != 0){
-  if (ptsz->sz_verbose>10)
+  if (ptsz->sz_verbose>1)
       printf("counter terms nmin\n");
    tabulate_hmf_counter_terms_nmin(pba,pnl,ppm,ptsz);
-  if (ptsz->sz_verbose>10)
+  if (ptsz->sz_verbose>1)
   printf("counter terms b1 min\n");
    tabulate_hmf_counter_terms_b1min(pba,pnl,ppm,ppt,ptsz);
-   if (ptsz->sz_verbose>10)
+   if (ptsz->sz_verbose>1)
    printf("counter terms b1 min done\n");
    if (ptsz->hm_consistency==1){
    ptsz->hm_consistency_counter_terms_done = 0;
@@ -720,11 +721,11 @@ int number_of_threads= 1;
 //printf("number_of_threads = %d\n",number_of_threads);
 // number_of_threads= 1;
 int id;
-omp_lock_t lock;
+// omp_lock_t lock;
 
 
 #pragma omp parallel \
-   shared(abort,pba,ptsz,ppm,pnl,lock)\
+   shared(abort,pba,ptsz,ppm,pnl)\
    private(tstart,tstop,Pvectsz,Pvecback,index_integrand,id)\
    num_threads(number_of_threads)
 	 {
@@ -2665,6 +2666,7 @@ int compute_sz(struct background * pba,
       if (ptsz->sz_verbose > 0) printf("computing mean y\n");
    }
    else if (index_integrand>=ptsz->index_integrand_id_sz_ps_first && index_integrand <= ptsz->index_integrand_id_sz_ps_last && ptsz->has_sz_ps){
+     // printf("entered line 2669\n");
       Pvectsz[ptsz->index_md] = ptsz->index_md_sz_ps;
       Pvectsz[ptsz->index_multipole] = (double) (index_integrand - ptsz->index_integrand_id_sz_ps_first);
       Pvectsz[ptsz->index_has_electron_pressure] = 1;
@@ -4365,7 +4367,8 @@ double integrand_at_m_and_z(double logM,
 
    //Return the HMF - dn/dlogM in units of h^3 Mpc^-3
    //result stored in pvectsz[ptsz->index_hmf]
-
+   // printf("evaluating HMF\n");
+   // printf("M=%.18e\n",pvectsz[ptsz->index_mass_for_hmf]);
    evaluate_HMF_at_logM_and_z(log(pvectsz[ptsz->index_mass_for_hmf]),z,pvecback,pvectsz,pba,pnl,ptsz);
 
    pvectsz[ptsz->index_dlnMdeltadlnM]= 1.;//evaluate_dlnMdeltadlnM(log(pvectsz[ptsz->index_mVIR]),
@@ -4489,7 +4492,7 @@ double damping_1h_term;
 
 
    else if (_tSZ_power_spectrum_){
-
+      // printf("entering line 4493: _tSZ_power_spectrum_");
       pvectsz[ptsz->index_multipole_for_pressure_profile] = ptsz->ell[index_l];
 
       evaluate_pressure_profile(pvecback,pvectsz,pba,ptsz);
@@ -8439,6 +8442,7 @@ double lnsigma2 = log(sigma*sigma);
 //Nakamura-Suto or not
 double delta_c = ptsz->delta_cSZ;//*(1.+0.012299*log10(pvecback[pba->index_bg_Omega_m]));
 // double lnnu = 2.*log(ptsz->delta_cSZ) - lnsigma2;
+//printf("delta c %.5f\n", delta_c);
 double lnnu = 2.*log(delta_c) - lnsigma2;
 double nu = exp(lnnu);
 free(pvecback);
@@ -9447,7 +9451,9 @@ pvectsz[ptsz->index_lognu] = log(get_nu_at_z_and_m(exp(z_asked)-1.,m_for_hmf,pts
   pvectsz[ptsz->index_dlogSigma2dlogRh] *= exp(log(pvectsz[ptsz->index_Rh]))/pba->h
                                            /exp(pvectsz[ptsz->index_logSigma2]);
 
-
+  // FILE *fp = fopen("/Users/asabyr/Documents/software/class_sz/dlogsigma2dlogRh.txt", "a");
+  // fprintf(fp, "%.8f %.18e %.18e\n", z,  m_for_hmf, pvectsz[ptsz->index_dlogSigma2dlogRh]);
+  // fclose(fp);
   pvectsz[ptsz->index_dlognudlogRh] = -pvectsz[ptsz->index_dlogSigma2dlogRh];
    //HMF evaluation:
    //Tinker et al 2010
