@@ -308,7 +308,7 @@ struct tszspectrum {
   int integrate_wrt_m500c;
   int integrate_wrt_m200m;
   int integrate_wrt_m200c;
-
+  int integrate_wrt_m180m;
   int has_electron_pressure;
   int has_electron_density;
   int has_HI_density;
