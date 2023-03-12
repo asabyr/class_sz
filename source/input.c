@@ -3924,7 +3924,7 @@ class_read_int("no_tt_noise_in_kSZ2X_cov",ptsz->no_tt_noise_in_kSZ2X_cov);
         }
         else  if ((strstr(string1,"J01") != NULL)){
           ptsz->MF=3;
-          // ptsz->integrate_wrt_m180m = 1;
+          ptsz->integrate_wrt_m180m = 1;
         }
         else  if ((strstr(string1,"T08M200c") != NULL)) { // needs to be before T08!
           ptsz->MF=8;
