@@ -118,6 +118,10 @@ cdef class Class:
     cpdef object _pars # Dictionary of the parameters
     cpdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
 
+
+    cpdef double sigma8_fast
+    cpdef object class_szfast
+
     # Defining two new properties to recover, respectively, the parameters used
     # or the age (set after computation). Follow this syntax if you want to
     # access other quantities. Alternatively, you can also define a method, and
@@ -221,8 +225,13 @@ cdef class Class:
 
     # Called at the end of a run, to free memory
     def struct_cleanup(self):
+        # print('cleaning up memoryyyy!!!')
+        # print('level:',self.ncp)
         if(self.allocated != True):
           return
+        if self.tsz.use_class_sz_fast_mode == 1:
+            szcounts_free(&self.csz,&self.tsz)
+            szpowerspectrum_free(&self.tsz)
         if "szcount" in self.ncp: #BB: added for class_sz
             szcounts_free(&self.csz,&self.tsz)
         if "szpowerspectrum" in self.ncp:  #BB: added for class_sz
@@ -526,9 +535,8 @@ cdef class Class:
         return
 
     def compute_class_szfast(self):
-        # Equivalent of writing a parameter file
-        # self._fillparfile()
-
+        # print("print parameters:")
+        # print(self._pars)
         self.compute(level=["thermodynamics"])
         # print(self._pars)
         params_settings = self._pars
@@ -560,6 +568,17 @@ cdef class Class:
         end = time.time()
         # print('pknl calculation took:',end-start)
 
+        # print('calculating sigma8')
+        start = time.time()
+        cszfast.calculate_sigma8_and_der(**params_settings)
+        end = time.time()
+        # print('der calculation took:',end-start)
+        # print('sigma8:',cszfast.sigma8)
+        self.sigma8_fast = cszfast.sigma8
+
+        cszfast.calculate_sigma8_at_z(**params_settings)
+
+
         self.tsz.use_class_sz_fast_mode = 1
 
         if class_sz_cosmo_init(&(self.ba), &(self.th), &(self.pt), &(self.nl), &(self.pm),
@@ -574,19 +593,22 @@ cdef class Class:
         # print('dsigma2',cszfast.cszfast_pk_grid_dsigma2_flat)
         # print('ln1pz',cszfast.cszfast_pk_grid_ln1pz)
         # print('lnr',cszfast.cszfast_pk_grid_lnr)
-        index_z_r = 0
-        for index_z in range(self.tsz.n_arraySZ):
-          for index_r in range(self.tsz.ndimSZ):
-                self.tsz.array_radius[index_r] = cszfast.cszfast_pk_grid_lnr[index_r]
-                self.tsz.array_redshift[index_z] = cszfast.cszfast_pk_grid_ln1pz[index_z]
-                self.tsz.array_sigma_at_z_and_R[index_z_r] = cszfast.cszfast_pk_grid_lnsigma2_flat[index_z_r]
-                self.tsz.array_dsigma2dR_at_z_and_R[index_z_r] = cszfast.cszfast_pk_grid_dsigma2_flat[index_z_r]
-                self.tsz.array_pkl_at_z_and_k[index_z_r] = cszfast.cszfast_pk_grid_pk_flat[index_z_r]
-                self.tsz.array_pknl_at_z_and_k[index_z_r] = cszfast.cszfast_pk_grid_pknl_flat[index_z_r]
-                self.tsz.array_lnk[index_r] = cszfast.cszfast_pk_grid_lnk[index_r]
-                index_z_r += 1
+        if self.tsz.need_sigma == 1:
+          index_z_r = 0
+          for index_z in range(self.tsz.n_arraySZ):
+            for index_r in range(self.tsz.ndimSZ):
+                  self.tsz.array_radius[index_r] = cszfast.cszfast_pk_grid_lnr[index_r]
+                  self.tsz.array_redshift[index_z] = cszfast.cszfast_pk_grid_ln1pz[index_z]
+                  self.tsz.array_sigma_at_z_and_R[index_z_r] = cszfast.cszfast_pk_grid_lnsigma2_flat[index_z_r]
+                  self.tsz.array_dsigma2dR_at_z_and_R[index_z_r] = cszfast.cszfast_pk_grid_dsigma2_flat[index_z_r]
+                  self.tsz.array_pkl_at_z_and_k[index_z_r] = cszfast.cszfast_pk_grid_pk_flat[index_z_r]
+                  self.tsz.array_pknl_at_z_and_k[index_z_r] = cszfast.cszfast_pk_grid_pknl_flat[index_z_r]
+                  self.tsz.array_lnk[index_r] = cszfast.cszfast_pk_grid_lnk[index_r]
+                  index_z_r += 1
         end = time.time()
         # print('end tabulate sigma:',end-start)
+
+        self.class_szfast = cszfast
 
         if szpowerspectrum_init(&(self.ba), &(self.th), &(self.pt), &(self.nl), &(self.pm),
         &(self.sp),&(self.le),&(self.tsz),&(self.pr)) == _FAILURE_:
@@ -603,11 +625,17 @@ cdef class Class:
 
 
 
-
-
     def compute_class_sz(self,pdict_to_update):
         self._fillparfile()
         for k,v in pdict_to_update.items():
+          if k == 'M_min':
+            self.tsz.M1SZ = pdict_to_update[k]
+          if k == 'M_max':
+            self.tsz.M2SZ = pdict_to_update[k]
+          if k == 'z_min':
+            self.tsz.z1SZ = pdict_to_update[k]
+          if k == 'z_max':
+            self.tsz.z2SZ = pdict_to_update[k]
           if k == 'fNL':
             self.tsz.fNL = pdict_to_update['fNL']
           if k == 'A_rho0':
@@ -877,49 +905,76 @@ cdef class Class:
         cdef int lmaxR
         cdef double *lcl = <double*> calloc(self.le.lt_size,sizeof(double))
 
-        # Define a list of integers, refering to the flags and indices of each
-        # possible output Cl. It allows for a clear and concise way of looping
-        # over them, checking if they are defined or not.
-        has_flags = [
-            (self.le.has_tt, self.le.index_lt_tt, 'tt'),
-            (self.le.has_ee, self.le.index_lt_ee, 'ee'),
-            (self.le.has_te, self.le.index_lt_te, 'te'),
-            (self.le.has_bb, self.le.index_lt_bb, 'bb'),
-            (self.le.has_pp, self.le.index_lt_pp, 'pp'),
-            (self.le.has_tp, self.le.index_lt_tp, 'tp'),]
-        spectra = []
+        if self.tsz.use_class_sz_fast_mode == 1:
+          # bypass all together and replace by cosmopower call.
+          cls = {}
+          cls['ell'] = np.arange(20000)
+          cls['tt'] = np.zeros(20000)
+          cls['te'] = np.zeros(20000)
+          cls['ee'] = np.zeros(20000)
+          cls['pp'] = np.zeros(20000)
 
-        for flag, index, name in has_flags:
-            if flag:
-                spectra.append(name)
+          nl = len(self.class_szfast.cp_predicted_tt_spectrum)
+          lcp = np.asarray(cls['ell'][2:nl+2])
+          # print('nl:',nl)
+          cls['tt'][2:nl+2] = self.class_szfast.cp_predicted_tt_spectrum
+          cls['tt'][2:nl+2] *= 1./(lcp*(lcp+1.)/2./np.pi)
+          cls['te'][2:nl+2] = self.class_szfast.cp_predicted_te_spectrum
+          cls['te'][2:nl+2] *= 1./(lcp*(lcp+1.)/2./np.pi)
+          cls['ee'][2:nl+2] = self.class_szfast.cp_predicted_ee_spectrum
+          cls['ee'][2:nl+2] *= 1./(lcp*(lcp+1.)/2./np.pi)
+          # cls['pp'][2:nl+2] = self.class_szfast.cp_predicted_pp_spectrum/4. ## this is clkk... works for so lensinglite lkl
+          cls['pp'][2:nl+2] = self.class_szfast.cp_predicted_pp_spectrum/(lcp*(lcp+1.))**2.
+          # # here for the planck lensing lkl, using lfactor option gives:
+          # cls['pp'][2:nl+2] = self.cp_predicted_pp_spectrum/(lcp*(lcp+1.))**2.
+          # cls['pp'][2:nl+2] *= (lcp*(lcp+1.))**2./2./np.pi
+          free(lcl)
+          return cls
+        else:
 
-        if not spectra:
-            raise CosmoSevereError("No lensed Cl computed")
-        lmaxR = self.le.l_lensed_max
+          # Define a list of integers, refering to the flags and indices of each
+          # possible output Cl. It allows for a clear and concise way of looping
+          # over them, checking if they are defined or not.
+          has_flags = [
+              (self.le.has_tt, self.le.index_lt_tt, 'tt'),
+              (self.le.has_ee, self.le.index_lt_ee, 'ee'),
+              (self.le.has_te, self.le.index_lt_te, 'te'),
+              (self.le.has_bb, self.le.index_lt_bb, 'bb'),
+              (self.le.has_pp, self.le.index_lt_pp, 'pp'),
+              (self.le.has_tp, self.le.index_lt_tp, 'tp'),]
+          spectra = []
 
-        if lmax == -1:
-            lmax = lmaxR
-        if lmax > lmaxR:
-            if nofail:
-                self._pars_check("l_max_scalars",lmax)
-                self.compute(["lensing"])
-            else:
-                raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
+          for flag, index, name in has_flags:
+              if flag:
+                  spectra.append(name)
 
-        cl = {}
-        # Simple Cls, for temperature and polarisation, are not so big in size
-        for elem in spectra:
-            cl[elem] = np.zeros(lmax+1, dtype=np.double)
-        for ell from 2<=ell<lmax+1:
-            if lensing_cl_at_l(&self.le,ell,lcl) == _FAILURE_:
-                raise CosmoSevereError(self.le.error_message)
-            for flag, index, name in has_flags:
-                if name in spectra:
-                    cl[name][ell] = lcl[index]
-        cl['ell'] = np.arange(lmax+1)
+          if not spectra:
+              raise CosmoSevereError("No lensed Cl computed")
+          lmaxR = self.le.l_lensed_max
 
-        free(lcl)
-        return cl
+          if lmax == -1:
+              lmax = lmaxR
+          if lmax > lmaxR:
+              if nofail:
+                  self._pars_check("l_max_scalars",lmax)
+                  self.compute(["lensing"])
+              else:
+                  raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
+
+          cl = {}
+          # Simple Cls, for temperature and polarisation, are not so big in size
+          for elem in spectra:
+              cl[elem] = np.zeros(lmax+1, dtype=np.double)
+          for ell from 2<=ell<lmax+1:
+              if lensing_cl_at_l(&self.le,ell,lcl) == _FAILURE_:
+                  raise CosmoSevereError(self.le.error_message)
+              for flag, index, name in has_flags:
+                  if name in spectra:
+                      cl[name][ell] = lcl[index]
+          cl['ell'] = np.arange(lmax+1)
+
+          free(lcl)
+          return cl
 
     def density_cl(self, lmax=-1, nofail=False):
         """
@@ -1086,16 +1141,18 @@ cdef class Class:
 
         """
         cdef double pk
-
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-
-        if (self.nl.method == nl_none):
-            if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_m,&pk,NULL)==_FAILURE_:
-                raise CosmoSevereError(self.nl.error_message)
+        if self.tsz.use_class_sz_fast_mode == 1:
+          pk = self.class_szfast.get_pknl_at_k_and_z(k,z)
         else:
-            if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_nonlinear,k,z,self.nl.index_pk_m,&pk,NULL)==_FAILURE_:
-                raise CosmoSevereError(self.nl.error_message)
+          if (self.pt.has_pk_matter == _FALSE_):
+              raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+
+          if (self.nl.method == nl_none):
+              if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_m,&pk,NULL)==_FAILURE_:
+                  raise CosmoSevereError(self.nl.error_message)
+          else:
+              if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_nonlinear,k,z,self.nl.index_pk_m,&pk,NULL)==_FAILURE_:
+                  raise CosmoSevereError(self.nl.error_message)
 
         return pk
 
@@ -1139,11 +1196,14 @@ cdef class Class:
         """
         cdef double pk_lin
 
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+        if self.tsz.use_class_sz_fast_mode == 1:
+          pk_lin = self.class_szfast.get_pkl_at_k_and_z(k,z)
+        else:
+          if (self.pt.has_pk_matter == _FALSE_):
+              raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
 
-        if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_m,&pk_lin,NULL)==_FAILURE_:
-            raise CosmoSevereError(self.nl.error_message)
+          if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_m,&pk_lin,NULL)==_FAILURE_:
+              raise CosmoSevereError(self.nl.error_message)
 
         return pk_lin
 
@@ -1317,15 +1377,21 @@ cdef class Class:
 
         """
         cdef double sigma
+        if self.tsz.use_class_sz_fast_mode == 1:
+          sigma = self.class_szfast.get_sigma_at_r_and_z(R,z)
+          # if h_units == True:
+          #   sigma = self.class_szfast.get_sigma_at_r_and_z(R*self.h(),z)
+          # else:
+          #   sigma = self.class_szfast.get_sigma_at_r_and_z(R,z)
+        else:
+          if (self.pt.has_pk_matter == _FALSE_):
+              raise CosmoSevereError("No power spectrum computed. In order to get sigma(R,z) you must add mPk to the list of outputs.")
 
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. In order to get sigma(R,z) you must add mPk to the list of outputs.")
+          if (self.pt.k_max_for_pk < self.ba.h):
+              raise CosmoSevereError("In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc.")
 
-        if (self.pt.k_max_for_pk < self.ba.h):
-            raise CosmoSevereError("In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc.")
-
-        if nonlinear_sigmas_at_z(&self.pr,&self.ba,&self.nl,R,z,self.nl.index_pk_m,out_sigma,&sigma)==_FAILURE_:
-            raise CosmoSevereError(self.nl.error_message)
+          if nonlinear_sigmas_at_z(&self.pr,&self.ba,&self.nl,R,z,self.nl.index_pk_m,out_sigma,&sigma)==_FAILURE_:
+              raise CosmoSevereError(self.nl.error_message)
 
         return sigma
 
@@ -1435,8 +1501,11 @@ cdef class Class:
 
 
     def age(self):
-        self.compute(["background"])
-        return self.ba.age
+        if self.tsz.use_class_sz_fast_mode == 1:
+          return self.ba.age
+        else:
+          self.compute(["background"])
+          return self.ba.age
 
     def h(self):
         return self.ba.h
@@ -1479,8 +1548,18 @@ cdef class Class:
         return self.ba.a_eq*self.ba.H_eq
 
     def sigma8(self):
-        self.compute(["nonlinear"])
-        return self.nl.sigma8[self.nl.index_pk_m]
+        if self.tsz.use_class_sz_fast_mode == 1:
+          return self.sigma8_fast
+        else:
+          self.compute(["nonlinear"])
+          return self.nl.sigma8[self.nl.index_pk_m]
+
+    def get_sigma8_at_z(self,z):
+        return self.class_szfast.get_sigma8_at_z(z)
+
+    def get_effective_f_sigma8(self,z):
+        return self.class_szfast.get_effective_f_sigma8(z)
+
 
     #def neff(self):
     #    self.compute(["spectra"])
@@ -1491,8 +1570,11 @@ cdef class Class:
         return self.nl.sigma8[self.nl.index_pk_cb]
 
     def rs_drag(self):
-        self.compute(["thermodynamics"])
-        return self.th.rs_d
+        if self.tsz.use_class_sz_fast_mode == 1:
+          return self.th.rs_d
+        else:
+          self.compute(["thermodynamics"])
+          return self.th.rs_d
 
     def z_reio(self):
         self.compute(["thermodynamics"])
@@ -2383,14 +2465,6 @@ cdef class Class:
     def get_scale_dependent_bias_at_z_and_k(self,z_asked,k_asked,bh):
         return get_scale_dependent_bias_at_z_and_k(z_asked,k_asked,bh,&self.tsz)
 
-
-    def get_szcounts_rates_at_z_sigobs_qobs(self,z_asked,sig_asked, qobs_asked):
-        return get_szcounts_rates_at_z_sigobs_qobs(z_asked, sig_asked, qobs_asked, &self.tsz)
-
-
-    def get_szcounts_dndzdqgt_at_z_q(self,z_asked,qobs_asked):
-        return get_szcounts_dndzdqgt_at_z_q(z_asked, qobs_asked, &self.tsz)
-
     def get_szcounts_dndzdq_at_z_q(self,z_asked,qobs_asked):
         return get_szcounts_dndzdq_at_z_q(z_asked, qobs_asked, &self.tsz)
 
@@ -3062,6 +3136,35 @@ cdef class Class:
 
     def szunbinned_loglike(self):
         return self.tsz.szunbinned_loglike
+    def szcounts_ntot(self):
+        return self.tsz.szcounts_ntot
+    def szcounts_ntot_rates_loglike(self, int nq = 500, double qmax = -1):
+        # # lndndzdq =  []
+        # # print(self.tsz.szcat_size)
+        # # first we compute ntot
+        zmin = self.tsz.szcounts_fft_z_min
+        zmax = self.tsz.szcounts_fft_z_max
+        nz = self.tsz.szcounts_fft_nz
+        q_threshold = self.tsz.sn_cutoff
+        if qmax == -1:
+           q_max = self.tsz.szcounts_qmax_fft_padded
+        q_arr = np.geomspace(q_threshold, q_max,nq)
+        z_arr = np.linspace(zmin,zmax,nz)
+        get_dndzdq = np.vectorize(self.get_szcounts_dndzdq_at_z_q)
+        Nz = []
+        for zp in z_arr:
+           Nz.append(np.trapz(get_dndzdq(zp,q_arr)*q_arr,x=np.log(q_arr)))
+        Nz = np.asarray(Nz)
+        Ntot = np.trapz(Nz,x=z_arr)
+        # # compute rates
+        rates = []
+        for index in range(self.tsz.szcat_size):
+            rates.append(self.tsz.szrate[index])
+        rates = np.asarray(rates)
+        # # compute loglike
+        loglike = - Ntot + np.sum(np.log(rates))
+        return {'ntot':Ntot,'rates':rates,'loglike':loglike}
+        # return Nz
 
     def dndzdy_theoretical(self):
         """
