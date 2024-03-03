@@ -212,7 +212,7 @@ int szpowerspectrum_init(
                                     }
 
 
-  printf("tabulating sigma & dsigma\n");
+  //printf("tabulating sigma & dsigma\n");
    tabulate_sigma_and_dsigma_from_pk(pba,pnl,ppm,ptsz);
 
 
